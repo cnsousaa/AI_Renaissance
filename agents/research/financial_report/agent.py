@@ -225,64 +225,479 @@ class FinancialReportAgent(BaseAgent):
             self.log(f"OpenAI API 调用失败：{e}", "error")
             return {}
 
-    # ── 降级方案：本地规则引擎 ─────────────────────────────
+    # ── 降级方案：本地规则引擎（完整七步验证链）──────────
+
+    # 七步验证链定义（与 SKILL.md 保持一致）
+    SEVEN_STEPS = [
+        {
+            "step": 1,
+            "name": "看现金",
+            "description": "利润是不是被现金撑住",
+            "metrics": ["经营现金流/净利润", "销售收现/营收"],
+            "icon": "💰",
+        },
+        {
+            "step": 2,
+            "name": "看需求",
+            "description": "营运资本位置对不对",
+            "metrics": ["应收账款变化", "收现能力变化"],
+            "icon": "📦",
+        },
+        {
+            "step": 3,
+            "name": "看业绩",
+            "description": "合同负债/预收款先行指标",
+            "metrics": ["合同负债同比变化"],
+            "icon": "📋",
+        },
+        {
+            "step": 4,
+            "name": "看产能",
+            "description": "是否已在扩产",
+            "metrics": ["在建工程", "固定资产", "资本开支"],
+            "icon": "🏭",
+        },
+        {
+            "step": 5,
+            "name": "看扩张",
+            "description": "资本开支力度",
+            "metrics": ["购建固定资产支付的现金"],
+            "icon": "📈",
+        },
+        {
+            "step": 6,
+            "name": "看扩张风险",
+            "description": "净债务水平",
+            "metrics": ["短期借款变化", "长期借款变化", "财务费用"],
+            "icon": "⚠️",
+        },
+        {
+            "step": 7,
+            "name": "看利率敏感度",
+            "description": "财务费用侵蚀",
+            "metrics": ["财务费用/营业利润"],
+            "icon": "🏦",
+        },
+    ]
 
     def _fallback_rule_engine(self, financial_data: dict, stock_code: str) -> dict:
         """
         本地规则引擎（不依赖 LLM）
-        实现 Skill 中「第一步：看现金」的核心逻辑
+        完整实现 Skill 七步验证链，对每个步骤逐一评分。
         """
+        reasoning_steps = []  # 收集每一步的推理结果
+        # bullish_score[0]=计数, [1]=权重; bearish_score 同理
+        bullish_score = [0, 0]
+        bearish_score = [0, 0]
+        total_weight = [0]  # 用列表以便在函数内修改
+
         try:
-            # 尝试从 API 返回的结构化数据里提取核心字段
-            # 东方财富 API 返回格式：{"data":[{"ORGCODE":"...","DATATYPE":"...",...}]}
-            balance_data = financial_data.get("balance", {}).get("data", [{}])[0]
-            income_data  = financial_data.get("income",  {}).get("data", [{}])[0]
-            cashflow_data = financial_data.get("cashflow", {}).get("data", [{}])[0]
+            balance_data   = financial_data.get("balance",   {}).get("data", [{}])[0]
+            income_data    = financial_data.get("income",   {}).get("data", [{}])[0]
+            cashflow_data  = financial_data.get("cashflow",  {}).get("data", [{}])[0]
 
-            # 提取核心数值（字段名以东方财富 API 实际返回为准）
-            # PARENT_NETPROFIT  = 归属于上市公司股东的净利润
-            # NETCASH_OPERATE    = 经营活动产生的现金流量净额
-            net_profit = self._safe_float(income_data.get("PARENT_NETPROFIT", 0))
-            cash_flow  = self._safe_float(cashflow_data.get("NETCASH_OPERATE", 0))
+            # ── 第一步：看现金 ──────────────────────────────────
+            step1 = self._step1_cash(income_data, cashflow_data)
+            reasoning_steps.append(step1)
+            self._score_step(step1, bullish_score, bearish_score, total_weight)
 
-            if net_profit == 0:
-                return {
-                    "direction": "neutral",
-                    "confidence": 0.3,
-                    "reasoning": "净利润为0，无法计算现金流比率",
-                    "signals": ["净利润为0"],
-                }
+            # ── 第二步：看需求 ──────────────────────────────────
+            step2 = self._step2_demand(balance_data, cashflow_data, income_data)
+            reasoning_steps.append(step2)
+            self._score_step(step2, bullish_score, bearish_score, total_weight)
 
-            ratio = cash_flow / abs(net_profit)
-            if ratio > 1.2:
-                return {
-                    "direction": "bullish",
-                    "confidence": min(ratio / 2.0, 0.95),
-                    "reasoning": f"经营现金流/净利润 = {ratio:.2f}，利润质量优秀（Skill七步验证链第一步）",
-                    "signals": [f"现金流比率{ratio:.2f}", "利润有现金支撑"],
-                }
-            elif ratio < 0.8:
-                return {
-                    "direction": "bearish",
-                    "confidence": min((1.0 - ratio) / 0.5, 0.9),
-                    "reasoning": f"经营现金流/净利润 = {ratio:.2f}，利润质量存疑（Skill七步验证链第一步）",
-                    "signals": [f"现金流比率{ratio:.2f}", "利润现金支撑不足"],
-                }
-            else:
-                return {
-                    "direction": "neutral",
-                    "confidence": 0.5,
-                    "reasoning": f"经营现金流/净利润 = {ratio:.2f}，处于合理区间",
-                    "signals": [f"现金流比率{ratio:.2f}"],
-                }
+            # ── 第三步：看业绩 ──────────────────────────────────
+            step3 = self._step3_performance(balance_data)
+            reasoning_steps.append(step3)
+            self._score_step(step3, bullish_score, bearish_score, total_weight)
+
+            # ── 第四步：看产能 ──────────────────────────────────
+            step4 = self._step4_capacity(balance_data, cashflow_data)
+            reasoning_steps.append(step4)
+            self._score_step(step4, bullish_score, bearish_score, total_weight)
+
+            # ── 第五步：看扩张 ──────────────────────────────────
+            step5 = self._step5_expansion(cashflow_data)
+            reasoning_steps.append(step5)
+            self._score_step(step5, bullish_score, bearish_score, total_weight)
+
+            # ── 第六步：看扩张风险 ──────────────────────────────────
+            step6 = self._step6_risk(balance_data)
+            reasoning_steps.append(step6)
+            self._score_step(step6, bullish_score, bearish_score, total_weight)
+
+            # ── 第七步：看利率敏感度 ──────────────────────────────────
+            step7 = self._step7_interest(income_data)
+            reasoning_steps.append(step7)
+            self._score_step(step7, bullish_score, bearish_score, total_weight)
+
+            # ── 综合判断 ──────────────────────────────────
+            return self._build_verdict(
+                bullish_score, bearish_score, total_weight,
+                reasoning_steps, stock_code
+            )
+
         except Exception as e:
             self.log(f"本地规则引擎出错：{e}", "error")
+            import traceback
+            self.log(traceback.format_exc(), "error")
             return {
                 "direction": "neutral",
                 "confidence": 0.2,
                 "reasoning": f"本地分析出错：{str(e)}",
                 "signals": [],
+                "reasoning_steps": [],
             }
+
+    def _score_step(self, step: dict, bullish_score, bearish_score, total_weight):
+        """根据步骤评分，更新全局计数"""
+        status = step.get("status", "neutral")
+        weight = step.get("weight", 1)
+        if status == "bullish":
+            bullish_score[0] += weight
+            bullish_score[1] += weight
+        elif status == "bearish":
+            bearish_score[0] += weight
+            bearish_score[1] += weight
+        total_weight[0] += weight
+
+    def _build_verdict(self, bullish_score, bearish_score, total_weight,
+                       reasoning_steps, stock_code) -> dict:
+        """综合七步结果，给出最终判断"""
+        b_cnt, b_weight = bullish_score
+        r_cnt, r_weight = bearish_score
+        total = total_weight[0]
+
+        if total == 0:
+            return {
+                "direction": "neutral",
+                "confidence": 0.3,
+                "reasoning": "七步验证链数据不足，无法给出明确判断",
+                "signals": [],
+                "reasoning_steps": reasoning_steps,
+            }
+
+        # 计算综合信号
+        net_signal = b_weight - r_weight
+        max_signal = total
+
+        # 置信度 = |net| / total，范围 0.3~0.9
+        confidence = max(0.3, min(0.9, abs(net_signal) / max_signal * 0.9 + 0.1))
+
+        # 方向
+        if net_signal > 0:
+            direction = "bullish"
+            reasoning = f"七步验证链综合评分：看多{b_cnt}项 vs 看空{r_cnt}项，净信号+{net_signal:.1f}，利润质量总体良好"
+        elif net_signal < 0:
+            direction = "bearish"
+            reasoning = f"七步验证链综合评分：看多{b_cnt}项 vs 看空{r_cnt}项，净信号{net_signal:.1f}，存在{abs(r_cnt)}项风险信号"
+        else:
+            direction = "neutral"
+            reasoning = f"七步验证链综合评分：看多{b_cnt}项 vs 看空{r_cnt}项，信号均衡，等待更多信息"
+
+        # 汇总信号列表
+        signals = []
+        for s in reasoning_steps:
+            if s.get("status") != "neutral":
+                signals.append(f"[{s['icon']}] {s['name']}：{s.get('signal', '待确认')}")
+
+        return {
+            "direction": direction,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "signals": signals,
+            "reasoning_steps": reasoning_steps,
+        }
+
+    # ── 七步具体实现 ──────────────────────────────────
+
+    def _step1_cash(self, income_data: dict, cashflow_data: dict) -> dict:
+        """第一步：看现金 — 利润是不是被现金撑住"""
+        net_profit  = self._safe_float(income_data.get("PARENT_NETPROFIT", 0))
+        cash_flow   = self._safe_float(cashflow_data.get("NETCASH_OPERATE", 0))
+        sales_cash  = self._safe_float(cashflow_data.get("SALES_SERVICES", 0))
+        revenue      = self._safe_float(income_data.get("TOTAL_OPERATE_INCOME", 0))
+
+        details = []
+        status  = "neutral"
+        signal  = ""
+        weight  = 1.5  # 第一步权重最高
+
+        if net_profit == 0:
+            details.append(f"归母净利润=0（无法计算）")
+            signal = "净利润为0"
+            status = "neutral"
+        else:
+            ratio = cash_flow / abs(net_profit)
+            details.append(f"经营现金流={self._fmt(cash_flow)}，归母净利润={self._fmt(net_profit)}")
+            details.append(f"经营现金流/净利润 = {ratio:.2f}")
+
+            if ratio > 1.2:
+                status = "bullish"
+                signal = f"现金流比率{ratio:.2f}>1.2，利润质量优秀"
+            elif ratio < 0.8:
+                status = "bearish"
+                signal = f"现金流比率{ratio:.2f}<0.8，利润质量存疑"
+            else:
+                status = "neutral"
+                signal = f"现金流比率{ratio:.2f}处于合理区间"
+
+        # 销售收现比
+        if revenue > 0:
+            sale_ratio = sales_cash / revenue
+            details.append(f"销售收现/营收 = {sale_ratio:.2f}")
+            if sale_ratio < 0.8:
+                if status != "bearish":
+                    status = "bearish"
+                signal += f"，销售收现比{sale_ratio:.2f}<0.8"
+        elif sales_cash > 0:
+            sale_ratio = 1.0
+            details.append("无法计算销售收现比（营收为0）")
+
+        return {
+            "step": 1,
+            "name": "看现金",
+            "icon": "💰",
+            "description": "利润是不是被现金撑住",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": weight,
+        }
+
+    def _step2_demand(self, balance_data: dict, cashflow_data: dict,
+                      income_data: dict) -> dict:
+        """第二步：看需求 — 营运资本位置"""
+        ar         = self._safe_float(balance_data.get("ACCOUNTS_RECE", 0))
+        inventory  = self._safe_float(balance_data.get("INVENTORY", 0))
+        sales_cash = self._safe_float(cashflow_data.get("SALES_SERVICES", 0))
+        revenue    = self._safe_float(income_data.get("TOTAL_OPERATE_INCOME", 0))
+
+        details = []
+        status  = "neutral"
+        signal  = ""
+
+        # 应收和收现综合判断
+        if revenue > 0:
+            ar_ratio = ar / revenue
+            details.append(f"应收账款/营收 = {ar_ratio:.2f}（应收占总营收比）")
+            if ar_ratio < 0.5:
+                status = "bullish"
+                signal = f"应收账款占比{ar_ratio:.2f}较低，需求真实"
+            elif ar_ratio > 1.5:
+                status = "bearish"
+                signal = f"应收账款占比{ar_ratio:.2f}过高，存在赊销风险"
+            else:
+                signal = f"应收账款占比{ar_ratio:.2f}处于正常范围"
+        else:
+            details.append("营收为0，无法计算应收比")
+
+        if inventory > 0:
+            if revenue > 0:
+                inv_ratio = inventory / revenue
+                details.append(f"存货/营收 = {inv_ratio:.2f}（存货占总营收比）")
+
+        return {
+            "step": 2,
+            "name": "看需求",
+            "icon": "📦",
+            "description": "营运资本位置对不对",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": 1.2,
+        }
+
+    def _step3_performance(self, balance_data: dict) -> dict:
+        """第三步：看业绩 — 合同负债/预收款先行指标"""
+        contract_liab = self._safe_float(balance_data.get("CONTRACT_LIAB", 0))
+
+        details = [f"合同负债 = {self._fmt(contract_liab)}"]
+        status  = "neutral"
+        signal  = ""
+
+        if contract_liab > 0:
+            # 合同负债>0说明有预收订单，是积极信号
+            # 但没有同比数据，只能看绝对值
+            status = "bullish"
+            signal = f"合同负债{self._fmt(contract_liab)}，有预收订单支撑"
+        else:
+            signal = "合同负债为0或无数据"
+
+        return {
+            "step": 3,
+            "name": "看业绩",
+            "icon": "📋",
+            "description": "合同负债/预收款先行指标",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": 1.0,
+        }
+
+    def _step4_capacity(self, balance_data: dict, cashflow_data: dict) -> dict:
+        """第四步：看产能 — 是否已在扩产"""
+        cip         = self._safe_float(balance_data.get("CIP", 0))
+        fixed_asset = self._safe_float(balance_data.get("FIXED_ASSET", 0))
+        capex       = self._safe_float(cashflow_data.get("CONSTRUCT_LONG_ASSET", 0))
+
+        details = [
+            f"在建工程 = {self._fmt(cip)}",
+            f"固定资产 = {self._fmt(fixed_asset)}",
+            f"购建固定资产支付现金 = {self._fmt(capex)}",
+        ]
+
+        # 三指标联动判断
+        active_count = sum(1 for v in [cip, fixed_asset, capex] if v > 0)
+
+        if active_count >= 2 and capex > 0:
+            status = "bullish"
+            signal = f"三指标联动（{active_count}项>0），真金白银在扩产"
+        elif active_count >= 1:
+            status = "neutral"
+            signal = f"部分扩产信号（{active_count}项>0）"
+        else:
+            status = "neutral"
+            signal = "未检测到明显扩产信号"
+
+        return {
+            "step": 4,
+            "name": "看产能",
+            "icon": "🏭",
+            "description": "是否已在扩产",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": 1.0,
+        }
+
+    def _step5_expansion(self, cashflow_data: dict) -> dict:
+        """第五步：看扩张 — 资本开支力度"""
+        capex = self._safe_float(cashflow_data.get("CONSTRUCT_LONG_ASSET", 0))
+
+        details = [f"购建固定资产无形资产支付的现金 = {self._fmt(capex)}"]
+        status  = "neutral"
+        signal  = ""
+
+        if capex > 1e8:  # 超过1亿
+            status = "bullish"
+            signal = f"资本开支{self._fmt(capex)}，扩张力度较大"
+        elif capex > 0:
+            status = "neutral"
+            signal = f"资本开支{self._fmt(capex)}，处于维持状态"
+        else:
+            signal = "无资本开支记录"
+
+        return {
+            "step": 5,
+            "name": "看扩张",
+            "icon": "📈",
+            "description": "资本开支力度",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": 0.8,
+        }
+
+    def _step6_risk(self, balance_data: dict) -> dict:
+        """第六步：看扩张风险 — 净债务水平"""
+        short_loan = self._safe_float(balance_data.get("SHORT_LOAN", 0))
+        long_loan  = self._safe_float(balance_data.get("LONG_LOAN", 0))
+        monetary   = self._safe_float(balance_data.get("MONETARYFUNDS", 0))
+        equity    = self._safe_float(balance_data.get("TOTAL_PARENT_EQUITY", 0))
+
+        total_debt  = short_loan + long_loan
+        net_debt    = total_debt - monetary
+        details = [
+            f"短期借款 = {self._fmt(short_loan)}",
+            f"长期借款 = {self._fmt(long_loan)}",
+            f"货币资金 = {self._fmt(monetary)}",
+            f"净债务 = {self._fmt(net_debt)}",
+        ]
+
+        status = "neutral"
+        signal = ""
+
+        if net_debt < 0:
+            status = "bullish"
+            signal = f"净债务为负（现金充裕），风险较低"
+        elif equity > 0:
+            debt_ratio = net_debt / equity
+            details.append(f"净债务/股东权益 = {debt_ratio:.2f}")
+            if debt_ratio > 2.0:
+                status = "bearish"
+                signal = f"净债务率{debt_ratio:.2f}>2.0，债务压力较大"
+            elif debt_ratio > 1.0:
+                status = "neutral"
+                signal = f"净债务率{debt_ratio:.2f}处于中等水平"
+            else:
+                status = "bullish"
+                signal = f"净债务率{debt_ratio:.2f}<1.0，债务健康"
+        else:
+            signal = f"总借款{self._fmt(total_debt)}，但无法计算债务率（股东权益为0）"
+
+        return {
+            "step": 6,
+            "name": "看扩张风险",
+            "icon": "⚠️",
+            "description": "净债务水平",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": 1.2,
+        }
+
+    def _step7_interest(self, income_data: dict) -> dict:
+        """第七步：看利率敏感度 — 财务费用侵蚀"""
+        finance_exp  = self._safe_float(income_data.get("FINANCE_EXPENSE", 0))
+        operate_prof = self._safe_float(income_data.get("OPERATE_PROFIT", 0))
+
+        details = [
+            f"财务费用 = {self._fmt(finance_exp)}",
+            f"营业利润 = {self._fmt(operate_prof)}",
+        ]
+        status = "neutral"
+        signal = ""
+
+        if operate_prof > 0:
+            ratio = finance_exp / operate_prof
+            details.append(f"财务费用/营业利润 = {ratio:.1%}")
+            if ratio > 0.2:
+                status = "bearish"
+                signal = f"财务费用侵蚀{ratio:.1%}>20%，高风险"
+            elif ratio > 0.1:
+                status = "neutral"
+                signal = f"财务费用侵蚀{ratio:.1%}（10%-20%），需监控"
+            else:
+                status = "bullish"
+                signal = f"财务费用侵蚀{ratio:.1%}<10%，相对安全"
+        elif finance_exp > 0:
+            status = "bearish"
+            signal = "营业利润为负但仍有财务费用支出，风险较高"
+        else:
+            signal = "财务费用和营业利润均为0，无法评估"
+
+        return {
+            "step": 7,
+            "name": "看利率敏感度",
+            "icon": "🏦",
+            "description": "财务费用侵蚀",
+            "status": status,
+            "signal": signal,
+            "details": details,
+            "weight": 1.0,
+        }
+
+    def _fmt(self, val: float) -> str:
+        """格式化金额（亿为单位）"""
+        if abs(val) >= 1e8:
+            return f"{val/1e8:.2f}亿"
+        elif abs(val) >= 1e4:
+            return f"{val/1e4:.2f}万"
+        elif val == 0:
+            return "0"
+        else:
+            return f"{val:.2f}"
 
     def _safe_float(self, val) -> float:
         """安全转换为 float"""
@@ -299,6 +714,12 @@ class FinancialReportAgent(BaseAgent):
         confidence = result.get("confidence", 0.5)
         reasoning  = result.get("reasoning", "")
         signals    = result.get("signals", [])
+        reasoning_steps = result.get("reasoning_steps", [])
+
+        meta = {
+            "agent": "FinancialReportAgent",
+            "reasoning_steps": reasoning_steps,
+        }
 
         if direction == "bullish":
             return bullish_signal(
@@ -308,7 +729,7 @@ class FinancialReportAgent(BaseAgent):
                 source=self.name,
                 stock_code=stock_code,
                 signal_type="financial",
-                meta={"agent": "FinancialReportAgent"},
+                meta=meta,
             )
         elif direction == "bearish":
             return bearish_signal(
@@ -318,7 +739,7 @@ class FinancialReportAgent(BaseAgent):
                 source=self.name,
                 stock_code=stock_code,
                 signal_type="financial",
-                meta={"agent": "FinancialReportAgent"},
+                meta=meta,
             )
         else:
             return neutral_signal(
@@ -327,4 +748,5 @@ class FinancialReportAgent(BaseAgent):
                 source=self.name,
                 stock_code=stock_code,
                 signal_type="financial",
+                meta=meta,
             )

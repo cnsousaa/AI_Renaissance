@@ -332,7 +332,99 @@
     .form-row { flex-direction:column; }
     .form-group { min-width:100%; }
   }
-</style>
+
+  /* ===== 七步验证链 ===== */
+  .steps-chain {
+    padding: 16px 20px 12px;
+    border-top: 1px solid var(--gray-2);
+    margin-top: 0;
+  }
+  .steps-chain-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+  .steps-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--gray-1);
+    border-radius: 6px;
+    border: 1px solid var(--gray-2);
+    transition: all 0.15s;
+  }
+  .step-item:hover { border-color: var(--navy-lt); }
+  .step-item.bullish { border-left: 3px solid var(--green); background: #f0faf5; }
+  .step-item.bearish  { border-left: 3px solid var(--red);   background: #fefafa; }
+  .step-item.neutral  { border-left: 3px solid var(--gray-3); }
+  .step-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    line-height: 1.4;
+    width: 24px;
+    text-align: center;
+  }
+  .step-body { flex:1; min-width:0; }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .step-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+  }
+  .step-status-badge {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .badge-pass   { background: #e6f9f0; color: var(--green); }
+  .badge-fail   { background: #fce8e8; color: var(--red); }
+  .badge-warn   { background: #fff8e6; color: var(--amber); }
+  .badge-none   { background: var(--gray-2); color: var(--gray-4); }
+  .step-desc {
+    font-size: 12px;
+    color: var(--gray-4);
+    margin-bottom: 4px;
+  }
+  .step-signal {
+    font-size: 12px;
+    color: var(--gray-5);
+    font-weight: 500;
+  }
+  .step-details {
+    font-size: 11px;
+    color: var(--gray-3);
+    margin-top: 4px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    word-break: break-all;
+  }
+  .step-score-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 8px 14px;
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .step-score-bull { color: #7de8a8; font-weight: 600; }
+  .step-score-bear { color: #f88; font-weight: 600; }
 </head>
 <body>
 
@@ -533,10 +625,53 @@ function renderSignal(sig, agentName, stockCode) {
           <div class="detail-value" style="font-size:12px;">${sig.timestamp || "—"}</div>
         </div>
       </div>
+
+      ${renderStepsChain(sig.reasoning_steps)}
     </div>
   `;
 
   document.getElementById("resultArea").style.display = "block";
+}
+
+// ── 渲染七步验证链 ─────────────────────────────────
+function renderStepsChain(steps) {
+  if (!steps || !steps.length) return "";
+  let bullish = 0, bearish = 0;
+  steps.forEach(s => {
+    if (s.status === "bullish") bullish++;
+    else if (s.status === "bearish") bearish++;
+  });
+  const statusLabel = {
+    bullish: { text: "通过", cls: "badge-pass" },
+    bearish: { text: "风险", cls: "badge-fail" },
+    neutral: { text: "中性", cls: "badge-none" },
+  };
+  const itemsHtml = steps.map(s => {
+    const lb = statusLabel[s.status] || statusLabel.neutral;
+    return `<div class="step-item ${s.status}">
+      <div class="step-icon">${s.icon || "🔍"}</div>
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-name">${s.step}. ${s.name}</span>
+          <span class="step-status-badge ${lb.cls}">${lb.text}</span>
+        </div>
+        <div class="step-desc">${s.description || ""}</div>
+        <div class="step-signal">${s.signal || "—"}</div>
+        ${s.details && s.details.length ? `<div class="step-details">${s.details.join("<br>")}</div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+  const net = bullish - bearish;
+  const netLabel = net > 0 ? `+${net}` : `${net}`;
+  const netClass = net > 0 ? "step-score-bull" : net < 0 ? "step-score-bear" : "";
+  return `<div class="steps-chain">
+    <div class="steps-chain-title">七步验证链</div>
+    <div class="steps-grid">${itemsHtml}</div>
+    <div class="step-score-line" style="margin-top:10px;">
+      <span>综合评分</span>
+      <span><span class="${netClass}">${netLabel}</span>（看多${bullish}项 / 看空${bearish}项）</span>
+    </div>
+  </div>`;
 }
 
 // ── 历史记录 ────────────────────────────────────────

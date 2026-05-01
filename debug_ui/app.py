@@ -119,6 +119,10 @@ def debug_agent():
             "source": getattr(signal, "source", agent_name),
         }
 
+    # 提取 reasoning_steps（存储在 meta 中）
+    if hasattr(signal, "meta") and signal.meta:
+        result["reasoning_steps"] = signal.meta.get("reasoning_steps", [])
+
     return jsonify({"success": True, "result": result})
 
 
