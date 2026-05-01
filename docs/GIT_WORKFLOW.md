@@ -1,137 +1,376 @@
-# Git 协作工作流（超简单版）
+# Git 小白协作指南
 
-> 目标：**你只管写你的 Agent，永远不影响别人的代码**
-> 核心思路：`main` ← `develop` ← `你的功能分支`
+> 目标：让你安全地把自己的代码/文档交上来，不影响别人，也不直接改 `main` / `develop`。
 
----
+你不需要一开始学会 Git 的所有概念。先记住一句话：
 
-## 分支结构
-
-```
-main        ← 生产分支，永远可直接运行
- └─ develop ← 集成分支，所有 Agent 在这里汇合
-      └─ agent/你的名字-你的agent  ← 你自己的分支（随便改）
-```
+> 每次都从 `develop` 拉最新代码，然后在自己的分支上开发，最后通过 PR 合并。
 
 ---
 
-## 三步提交代码（记住这3条命令就够了）
+## 一、分支关系
 
-### 第1步：切换到 develop 并创建你自己的分支
+```
+main        ← 稳定分支，不要直接改
+ └─ develop ← 集成分支，大家的代码最终先合到这里
+      └─ 你的分支 ← 你自己的开发分支，只改自己的任务
+```
 
-```bash
-# 只需第一次做
-git clone git@github.com:duolongworld/AI_Renaissance.git
+你平时只需要关心两件事：
+
+1. 从 `develop` 创建自己的分支。
+2. 做完后把自己的分支提交 PR 到 `develop`。
+
+---
+
+## 二、Windows 第一次准备环境
+
+### 1. 安装 Git
+
+打开 Git for Windows 官方下载页：
+
+```text
+https://git-scm.com/install/windows
+```
+
+下载 Windows 版本安装包。安装时一路默认即可。
+
+安装完成后，**重新打开 PowerShell**，输入：
+
+```powershell
+git --version
+```
+
+如果能看到类似下面的版本号，说明安装成功：
+
+```text
+git version 2.xx.x.windows.x
+```
+
+如果提示：
+
+```text
+git 不是内部或外部命令
+```
+
+说明 Git 没装好，或者安装后没有重新打开 PowerShell。
+
+### 2. 选择开发目录
+
+建议把项目放在桌面或文档目录，不要放在 `C:\Program Files`、`C:\Windows` 这类需要管理员权限的目录。
+
+推荐：
+
+```powershell
+cd $HOME\Desktop
+```
+
+或者：
+
+```powershell
+cd $HOME\Documents
+```
+
+---
+
+## 三、第一次下载项目
+
+小白推荐使用 HTTPS，不需要先配置 SSH key。
+
+```powershell
+git clone https://github.com/duolongworld/AI_Renaissance.git
 cd AI_Renaissance
+```
 
-# 每次开发前做
+然后切换到 `develop`：
+
+```powershell
 git checkout develop
 git pull origin develop
-git checkout -b agent/你的名字-你的agent名
 ```
-
-> 例子：`git checkout -b agent/duolong-现金流验证`
-
-### 第2步：写代码，提交到你自己的分支
-
-```bash
-# 写代码...
-# 写完提交
-git add agents/research/financial/你的agent目录/
-git commit -m "feat: 添加现金流验证Agent"
-git push origin agent/你的名字-你的agent名
-```
-
-### 第3步：开一个 PR（Pull Request）到 develop
-
-1. 推送后会看到 GitHub 提示：**"Compare & pull request"**
-2. 点进去，确保 **base: develop** ← **compare: agent/你的分支**
-3. 填写 PR 模板（见下）
-4. 点 **Create pull request**
-5. 等 Review 通过后，你的代码就合入了
-
-✅ **永远不需要直接碰 `main` 或 `develop` 分支**
 
 ---
 
-## PR 模板（直接抄）
+## 四、每次开始开发前
+
+每次开始写代码前，先更新本地 `develop`：
+
+```powershell
+git checkout develop
+git pull origin develop
+```
+
+然后从最新的 `develop` 创建你自己的分支。
+
+---
+
+## 五、新建自己的分支
+
+不要直接在 `develop` 上写代码。
+
+新建分支：
+
+```powershell
+git checkout -b docs/zhangsan-git-guide
+```
+
+分支命名建议使用英文或拼音，不建议使用中文。
+
+常见命名：
+
+| 类型 | 分支名示例 | 适用场景 |
+|---|---|---|
+| 文档 | `docs/zhangsan-git-guide` | 改文档 |
+| Agent | `agent/lisi-cash-flow` | 写 Agent |
+| Skill | `skill/wangwu-financial-report` | 写 Skill |
+| 修复 | `fix/zhaoliu-debug-ui` | 修 bug |
+| 功能 | `feature/qianqi-signal-check` | 通用功能 |
+
+---
+
+## 六、修改文件后先检查状态
+
+每次提交前都先看：
+
+```powershell
+git status
+```
+
+它会告诉你：
+
+- 你改了哪些文件
+- 哪些文件还没加入提交
+- 当前在哪个分支
+
+如果你发现自己在 `develop` 或 `main` 上，请先停下来，不要提交。
+
+---
+
+## 七、提交代码
+
+只添加你这次改过的文件，不要一股脑全部添加。
+
+### 例子1：提交文档
+
+```powershell
+git add docs/GIT_WORKFLOW.md
+git commit -m "docs: 完善 Windows Git 入门流程"
+```
+
+### 例子2：提交 Agent
+
+```powershell
+git add agents/research/financial/cash_flow/
+git commit -m "feat: 添加现金流验证 Agent"
+```
+
+### 例子3：提交 Skill
+
+```powershell
+git add skills/financial_report_analysis/
+git commit -m "feat: 完善财报分析 Skill"
+```
+
+提交信息建议格式：
+
+```text
+docs: 修改文档
+feat: 新增功能
+fix: 修复问题
+refactor: 重构代码
+test: 添加测试
+```
+
+---
+
+## 八、推送到 GitHub
+
+把你的分支推送到远端：
+
+```powershell
+git push origin docs/zhangsan-git-guide
+```
+
+把上面的分支名换成你自己的分支名。
+
+如果 GitHub 弹出登录窗口，按提示登录即可。
+
+如果推送失败，并提示需要用户名、密码或 token，不要慌，先在群里问；也可以使用 GitHub CLI 登录：
+
+```powershell
+gh auth login
+```
+
+---
+
+## 九、创建 PR
+
+推送成功后，打开 GitHub 项目页面，通常会看到：
+
+```text
+Compare & pull request
+```
+
+点进去后确认：
+
+```text
+base: develop
+compare: 你的分支
+```
+
+然后填写 PR 说明，创建 PR。
+
+---
+
+## 十、PR 模板
+
+可以直接复制：
 
 ```markdown
-## Agent 名称
-现金流验证 Agent
+## 类型
 
-## 负责人
-@你的GitHub用户名
+Docs / Agent / Skill / Fix / Feature
 
 ## 做了什么
-- 实现了 analyze() 方法
-- 使用经营现金流 / 净利润 比率判断利润质量
+
+- 
+- 
 
 ## 如何测试
-```python
-from agents.research.financial.cash_flow.agent import CashFlowAgent
-agent = CashFlowAgent(config={})
-signal = agent.analyze("600519")
-print(signal)
-```
 
-## 截图/输出
-（粘贴终端输出或 Signal 对象）
+写明你怎么确认它能用。
+
+## 影响范围
+
+改了哪些文件？会影响哪些组？
 
 ## Checklist
-- [ ] 代码可以运行
-- [ ] 返回的是标准 Signal 对象
-- [ ] 有异常处理（try/except）
+
+- [ ] 我是在自己的分支上开发的
+- [ ] 我没有直接提交到 main / develop
+- [ ] 我只提交了和本任务相关的文件
+- [ ] 我没有提交 .env、密钥、日志、大型数据文件
+- [ ] 我已经运行或人工检查过结果
 ```
 
 ---
 
-## 常用命令速查
+## 十一、常用命令速查
 
 | 场景 | 命令 |
-|------|------|
-| 更新 develop | `git checkout develop && git pull` |
-| 新建功能分支 | `git checkout -b agent/名字-功能` |
-| 切回 develop | `git checkout develop` |
-| 删除已合并的分支 | `git branch -d agent/名字-功能` |
-| 强制同步远程 develop | `git checkout develop && git reset --hard origin/develop` |
+|---|---|
+| 查看当前状态 | `git status` |
+| 切到 develop | `git checkout develop` |
+| 更新 develop | `git pull origin develop` |
+| 新建分支 | `git checkout -b docs/your-name-task` |
+| 添加文件 | `git add 文件路径` |
+| 提交 | `git commit -m "docs: 说明你做了什么"` |
+| 推送 | `git push origin 你的分支名` |
+| 查看分支 | `git branch` |
 
 ---
 
-## ❌ 千万不要这样做
+## 十二、千万不要做
 
-```bash
-# ❌ 不要直接往 main 或 develop 提交
+不要直接推送到 `main`：
+
+```powershell
 git push origin main
-git push origin develop
-
-# ❌ 不要在没有 PR 的情况下修改别人的文件
-# ❌ 不要把测试数据、日志文件提交上来
 ```
 
+不要直接推送到 `develop`：
+
+```powershell
+git push origin develop
+```
+
+不要随便使用这些危险命令：
+
+```powershell
+git reset --hard
+git push --force
+```
+
+不要提交这些内容：
+
+- `.env`
+- API key / token / 密码
+- `__pycache__/`
+- `logs/`
+- 临时下载文件
+- 大型原始数据
+- 和本次任务无关的文件
+
 ---
 
-## ✅ 你应该这样做
+## 十三、常见问题
 
-```bash
-# ✅ 永远从 develop 拉取最新代码
+### Q1：提示 `git 不是内部或外部命令`
+
+说明 Git 没装好，或者安装后没有重新打开 PowerShell。
+
+解决：
+
+1. 重新安装 Git for Windows
+2. 关闭并重新打开 PowerShell
+3. 再运行：
+
+```powershell
+git --version
+```
+
+### Q2：`git clone` 很慢或失败
+
+可能是网络问题。先重试一次；如果还是失败，在群里问。
+
+### Q3：push 时要求登录 GitHub
+
+按弹窗登录即可。
+
+如果没有弹窗，可以尝试：
+
+```powershell
+gh auth login
+```
+
+如果你没有安装 GitHub CLI，先在群里问，不要乱输密码。
+
+### Q4：看到 `LF will be replaced by CRLF`
+
+这是 Windows 换行提示，一般不是错误，可以继续。
+
+### Q5：提示冲突 conflict
+
+先停下来，不要乱点，不要乱删。
+
+把错误信息复制到群里，让熟悉 Git 的人帮你看。
+
+---
+
+## 十四、最小完整流程
+
+第一次：
+
+```powershell
+cd $HOME\Desktop
+git clone https://github.com/duolongworld/AI_Renaissance.git
+cd AI_Renaissance
 git checkout develop
 git pull origin develop
-git checkout -b agent/你的功能
-
-# ✅ 提交前先 pull develop，解决冲突（如果有）
-git checkout develop
-git pull
-git checkout agent/你的功能
-git rebase develop
-
-# ✅ 一个 Agent 一个分支，保持 PR 小而清晰
+git checkout -b docs/your-name-task
 ```
 
+改完文件后：
+
+```powershell
+git status
+git add 你修改的文件
+git commit -m "docs: 说明你做了什么"
+git push origin docs/your-name-task
+```
+
+最后去 GitHub 创建 PR，目标分支选择 `develop`。
+
 ---
-
-## 遇到问题？
-
-在群里 @ 管理员，或创建 GitHub Issue。
 
 *最后更新：2026-05-01*
