@@ -1,11 +1,11 @@
-# data/ —— 统一数据管理层（方案 + 落地代码）
+# 统一数据管理层
 
 目标：从“多源信号来源（量价/财报/产业链/地缘/情绪/另类）”中抽象出统一数据接口与返回格式，让 Agent **只管分析**，不关心数据从哪来。
 
 ## 设计原则
 
 1. **统一入口**：Agent 只依赖 `DataHub`。
-2. **Provider 插件化**：每个数据源一个 Provider（AkShare / 东财 / 自研 / 第三方）。
+2. **Provider 插件化**：每个数据源一个 Provider（AkShare / Tushare / Baostock/ wind / ifind 及其他可扩展的信息源）。
 3. **标准返回格式**：统一返回 `DataResult(df, meta)`。
 4. **缓存/限频在 Hub 层**：避免每个 Agent 自己写缓存、写 timeout、被封禁。
 5. **最小归一化**：Provider 只做字段口径对齐（如把“日期/开盘/收盘”映射为 `date/open/close`）。
