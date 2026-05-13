@@ -15,6 +15,7 @@ Orchestrator Agent - 编排仲裁
 from typing import Dict, List, Optional
 from agents.base import BaseAgent
 from agents.orchestrator.arbitration import ArbitrationEngine, ArbitrationResult
+from agents.orchestrator.arbitration_strategy import create_arbitration_strategy
 from agents.orchestrator.scope import AgentScopeOrchestrationRunner
 from loguru import logger
 
@@ -37,6 +38,7 @@ class OrchestratorAgent(BaseAgent):
             risk_coefficient=config.get("risk_coefficient", 0.2) if config else 0.2,
         )
         self.runner = AgentScopeOrchestrationRunner(config=config or {})
+        self.arbitration_strategy = create_arbitration_strategy(config or {}, self.engine)
         self._expert_agents: List[BaseAgent] = []
 
     def register_expert(self, agent: BaseAgent):
@@ -75,8 +77,8 @@ class OrchestratorAgent(BaseAgent):
             f"(失败{scope.failed_count}，超时{scope.timeout_count}，无效{scope.invalid_count})"
         )
 
-        # 2. 执行仲裁
-        result = self.engine.arbitrate(bundle, execution_trace=scope.to_dict())
+        # 2. 按配置选择规则仲裁或 LLM 仲裁框架
+        result = self.arbitration_strategy.arbitrate(bundle, execution_trace=scope.to_dict())
         self.log(f"仲裁完成：{result.decision} / {result.direction} / {result.confidence:.0%}")
 
         return result
