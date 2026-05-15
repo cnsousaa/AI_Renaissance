@@ -14,14 +14,16 @@
 skills/macro/_workspace/
 ├── raw/                          # 原始文档
 │   └── v3/                       # V3版本原始资料
-│       ├── 宏观组分析框架3.0.docx  # 原始需求文档（Word格式）
-│       └── framework_full.md       # 框架完整Markdown版本
+│       ├── 宏观组分析框架3.0.docx  # V3.0原始需求文档
+│       ├── 宏观组分析框架V3.1(1).docx  # V3.1原始需求文档
+│       ├── framework_full.md       # V3.0框架完整Markdown版本
+│       └── framework_v3.1.md       # V3.1框架完整Markdown版本
 │
 ├── spec/                         # 规范文档
-│   ├── requirement.md             # ✅ 需求文档（宏观分析6层流水线）
-│   ├── input_data_spec.md         # ✅ 输入数据规范（给数据组同事）
-│   ├── 框架待解决问题清单.md       # ✅ 框架待解决问题清单
-│   └── macro_framework.html       # ✅ 宏观框架HTML可视化版本
+│   ├── requirement.md             # ✅ 需求文档（宏观分析7层流水线，V3.1）
+│   ├── input_data_spec.md         # ✅ 输入数据规范（给数据组同事，V1.1）
+│   ├── 框架待解决问题清单.md       # ✅ 框架待解决问题清单（V3.1版，22项）
+│   └── macro_framework.html       # ✅ 宏观框架HTML可视化版本（7层流水线）
 │
 ├── test/                         # 测试目录
 │   └── (待补充)
@@ -37,10 +39,10 @@ skills/macro/_workspace/
 
 | 任务 | 文件 | 说明 |
 |---|---|---|
-| 需求文档 | `spec/requirement.md` | 宏观分析6层流水线完整需求（Layer 0-5） |
-| 输入数据规范 | `spec/input_data_spec.md` | 给数据组同事的文档，定义所需原始输入数据 |
-| 框架待解决问题清单 | `spec/框架待解决问题清单.md` | 记录框架中需要明确的问题点 |
-| 宏观框架HTML版本 | `spec/macro_framework.html` | 可视化展示6层流水线架构 |
+| 需求文档 | `spec/requirement.md` | 宏观分析7层流水线完整需求（V3.1，新增Layer 4.5） |
+| 输入数据规范 | `spec/input_data_spec.md` | 给数据组同事的文档（V1.1，含Layer 4.5反身性指标） |
+| 框架待解决问题清单 | `spec/框架待解决问题清单.md` | V3.1版，22项待解决问题（含V3.1新增4项） |
+| 宏观框架HTML版本 | `spec/macro_framework.html` | 可视化展示7层流水线架构（含L4.5元认知层） |
 
 ### ⏳ 进行中
 
@@ -56,8 +58,10 @@ skills/macro/_workspace/
 | 任务 | 优先级 | 说明 |
 |---|---|---|
 | 宏观Agent实现 | P0 | 实现 `agents/macro/agent.py`（继承BaseAgent） |
+| Layer 4.5数据可得性评估 | P1 | 反身性压力计、范式稳定性指标的数据获取可行性 |
+| Layer 4.5量化判定标准 | P1 | 逻辑生命周期各阶段的判定阈值 |
 | Layer权重回测校准 | P1 | 需求文档中标注"权重待回测校准"的指标 |
-| 信号衰减公式验证 | P1 | Layer 4衰减系数需要历史数据拟合 |
+| 信号衰减公式验证 | P1 | Layer 4.5三重修正系数需要历史数据拟合 |
 | 资产配置映射规则 | P1 | Layer 5资产映射需要明确规则 |
 
 ---
@@ -78,6 +82,7 @@ skills/macro/_workspace/
    - `skills/macro/layer2.5_cross_asset/SKILL.md`
    - `skills/macro/layer3_expected_difference/SKILL.md`
    - `skills/macro/layer4_signal_arbitration/SKILL.md`
+   - `skills/macro/layer4.5_reflexivity_meta_cognition/SKILL.md`
    - `skills/macro/layer5_asset_allocation/SKILL.md`
 
 ### 阶段3：Agent实现与测试（下下周）
@@ -113,4 +118,4 @@ skills/macro/_workspace/
 
 ---
 
-*最后更新：2026-05-12*
+*最后更新：2026-05-15*
