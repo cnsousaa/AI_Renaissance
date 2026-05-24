@@ -156,9 +156,9 @@ Orchestrator Agent（编排，开发2组）
 | 产业链联动 | 上下游分析 | P2 |
 | 竞争格局 | 市场份额 | P3 |
 
-**当前注意：**
+**当前状态：**
 
-`main` 当前包含 `skills/Industry/` 产业链实现草稿，但它尚未符合小写嵌套目录约定，也尚未接入 `IndustryAgent.analyze()` 的标准 Signal 输出链路。合入正式行业能力前，需要先修正目录结构和 Agent 接入边界。
+`main` 当前包含 `skills/Industry/` 产业链实现；该实现未接入 `IndustryAgent.analyze()`。
 
 ---
 
