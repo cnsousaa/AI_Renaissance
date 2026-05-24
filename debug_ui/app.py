@@ -232,6 +232,7 @@ def debug_technical_agent():
                 config[key] = data[key]
     elif data_mode == "offline":
         config["use_live_data"] = False
+        config["allow_synthetic_ohlcv"] = True
     elif data_mode == "sample":
         rows = data.get("ohlcv_rows") or []
         if not isinstance(rows, list) or not rows:
