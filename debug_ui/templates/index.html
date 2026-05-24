@@ -156,6 +156,19 @@
     letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:8px;
   }
   .sec-title::before{content:"";width:3px;height:12px;background:var(--cyan);border-radius:2px}
+  .sentiment-section .sec-title.technical-report-title{
+    font-size:18px;font-weight:800;color:var(--text-1);text-transform:none;
+    letter-spacing:.2px;margin:22px 0 16px;line-height:1.35;
+  }
+  .sec-title.technical-report-title::before{height:20px;width:4px;box-shadow:var(--glow-cyan)}
+  .source-link-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .source-link{
+    display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--cyan-dim);
+    border-radius:999px;background:var(--cyan-bg);color:var(--cyan);font-size:11px;font-weight:600;
+    text-decoration:none;transition:border .15s,background .15s;
+  }
+  .source-link:hover{border-color:var(--cyan);background:var(--cyan-dim)}
+  .source-link-note{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.5}
 
   .gauge-wrap{display:flex;gap:20px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
   .gauge-ring{position:relative;width:140px;height:140px;flex-shrink:0}
@@ -786,7 +799,7 @@ function renderTraditionalModelFusionReport(report) {
   const voteSection = sections.find(s => String(s.title || "").startsWith("3.")) || {};
   const modelRows = voteSection.table || [];
   let html = `<div class="sentiment-section">
-    <div class="sec-title">① 传统模型融合分析报告</div>
+    <div class="sec-title technical-report-title">① 传统模型融合分析报告</div>
     <div class="detail-grid">
       <div class="detail-cell"><div class="detail-lbl">Direction</div><div class="detail-val"><span class="ev-sent ${(summary.direction || 'neutral').toLowerCase()}">${escapeHtml(summary.direction || "neutral")}</span></div></div>
       <div class="detail-cell"><div class="detail-lbl">Confidence</div><div class="detail-val">${fmtNumber(summary.confidence, 4)}</div></div>
@@ -822,11 +835,12 @@ function renderCompanyEvolutionReport(report) {
   const summary = report.summary || {};
   const period = report.data_period || {};
   const sourceMeta = summary.data_source_meta || report.data_source_meta || {};
+  const sourceLinkHtml = renderCompanySourceLinks(summary, sourceMeta);
   let html = `<div class="sentiment-section">
-    <div class="sec-title">② 公司发展分析</div>
+    <div class="sec-title technical-report-title">② 公司发展分析</div>
     <div class="detail-grid">
       <div class="detail-cell"><div class="detail-lbl">Status</div><div class="detail-val">${escapeHtml(report.status || "—")}</div></div>
-      <div class="detail-cell"><div class="detail-lbl">Source</div><div class="detail-val">${escapeHtml(summary.source || sourceMeta.provider || "—")}</div></div>
+      <div class="detail-cell"><div class="detail-lbl">Source</div><div class="detail-val">${escapeHtml(summary.source || sourceMeta.provider || "—")}${sourceLinkHtml}</div></div>
       <div class="detail-cell"><div class="detail-lbl">Direction</div><div class="detail-val"><span class="ev-sent ${(summary.direction || 'neutral').toLowerCase()}">${escapeHtml(summary.direction || "neutral")}</span></div></div>
       <div class="detail-cell"><div class="detail-lbl">Confidence</div><div class="detail-val">${fmtNumber(summary.confidence, 4)}</div></div>
       <div class="detail-cell"><div class="detail-lbl">Market Data Period</div><div class="detail-val">${escapeHtml(formatDataPeriod(period))}</div></div>
@@ -840,6 +854,47 @@ function renderCompanyEvolutionReport(report) {
   return html;
 }
 
+function renderCompanySourceLinks(summary, sourceMeta) {
+  const sourceText = String(summary.source || sourceMeta.provider || "").toLowerCase();
+  const provider = String(sourceMeta.provider || "").toLowerCase();
+  const stockCode = sourceMeta.stock_code || sourceMeta.stockCode || document.getElementById("stockCode")?.value || "";
+  const links = [];
+
+  if (provider === "cninfo" || sourceText.includes("cninfo")) {
+    const query = [stockCode, "公告"].filter(Boolean).join(" ");
+    links.push({
+      label: "打开巨潮公告检索",
+      url: `https://www.cninfo.com.cn/new/fulltextSearch?notautosubmit=&keyWord=${encodeURIComponent(query || "公告")}`,
+    });
+    links.push({ label: "巨潮资讯首页", url: "https://www.cninfo.com.cn/new/index" });
+  }
+
+  if (sourceMeta.source_url) links.push({ label: "数据源原文", url: sourceMeta.source_url });
+  if (sourceMeta.url) links.push({ label: "来源链接", url: sourceMeta.url });
+  if (!links.length) return "";
+
+  const uniqueLinks = [];
+  const seen = new Set();
+  links.forEach(link => {
+    const safeUrl = safeExternalUrl(link.url);
+    if (!safeUrl || seen.has(safeUrl)) return;
+    seen.add(safeUrl);
+    uniqueLinks.push({ label: link.label, url: safeUrl });
+  });
+
+  return `<div class="source-link-group">${uniqueLinks.map(link => `<a class="source-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">↗ ${escapeHtml(link.label)}</a>`).join("")}</div><div class="source-link-note">点击可跳转到原始披露来源，便于核验公告窗口和事实锚。</div>`;
+}
+
+function safeExternalUrl(url) {
+  try {
+    const parsed = new URL(String(url || ""), window.location.origin);
+    if (!["http:", "https:"].includes(parsed.protocol)) return "";
+    return parsed.href;
+  } catch (e) {
+    return "";
+  }
+}
+
 function renderVolumePriceReversalReport(report) {
   const std = report.standard_json || {};
   const meta = std.meta || {};
@@ -848,7 +903,7 @@ function renderVolumePriceReversalReport(report) {
   const period = report.data_period || {};
   const rows = report.summary_table || [];
   let html = `<div class="sentiment-section">
-    <div class="sec-title">③ 高盛量价背离与反转</div>`;
+    <div class="sec-title technical-report-title">③ 高盛量价背离与反转</div>`;
   if (rows.length) {
     html += `<table class="evidence-table"><thead><tr><th>标的</th><th>方向 / 置信 / 风险</th><th>触发形态</th><th>信号说明</th></tr></thead><tbody>`;
     html += rows.map(r => `<tr>
