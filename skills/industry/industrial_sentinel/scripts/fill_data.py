@@ -54,6 +54,17 @@ FIELD_TO_PATH = {
     "capex_plan": "real_signals.capex_plan",
 }
 
+# ========== capex_plan 枚举校验 ==========
+CAPEX_PLAN_VALID = {"underway", "planned", "none", "aggressive"}
+CAPEX_PLAN_VALUES_HELP = """
+  capex_plan 必须为以下枚举值之一:
+    "underway"   — 扩产进行中（已公告、已在建）
+    "planned"    — 扩产计划已公告但未开工
+    "none"       — 近期无扩产计划
+    "aggressive" — 激进扩产（规模超预期、节奏加快）
+  示例: --field capex_plan --value underway
+""" 
+
 
 def _set_nested(data: dict, path: str, value: Any):
     """按 '.' 分隔路径设置嵌套字典值。"""
@@ -132,6 +143,22 @@ def fill_field(
         except ValueError:
             pass
 
+    # capex_plan 枚举校验
+    if field == "capex_plan" and isinstance(value, str):
+        v = value.strip().lower()
+        if v not in CAPEX_PLAN_VALID:
+            print(f"⚠️  警告: capex_plan='{value}' 不是有效枚举值")
+            print(CAPEX_PLAN_VALUES_HELP)
+            # 尝试中文→枚举映射
+            cn_map = {"进行中": "underway", "已规划": "planned", "规划中": "planned",
+                      "无": "none", "激进": "aggressive", "扩产": "underway"}
+            v = cn_map.get(v, v)
+            if v in CAPEX_PLAN_VALID:
+                value = v
+                print(f"   已自动转换: '{value}' → '{v}'")
+            else:
+                print(f"   无法自动转换，将使用原始值（可能无法匹配拐点判定）")
+    
     # 写入
     _set_nested(data, path, value)
 
@@ -149,7 +176,7 @@ def fill_field(
     # 更新缺失计数
     rs = data.get("real_signals", {})
     core_fields = ["revenue_growth", "gross_margin", "order_backlog",
-                   "capacity_utilization", "price_yoy"]
+                   "capacity_utilization", "price_yoy", "inventory_days"]
     missing = sum(1 for f in core_fields if rs.get(f) is None)
     data["_missing_count"] = missing
     data["_last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
