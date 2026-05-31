@@ -784,22 +784,58 @@ def build_framework_from_preset(stock_code: str, preset_name: str) -> Dict[str, 
 
 
 def _chain_summary_to_html(chain_summary: list) -> str:
-    """将产业链摘要转为简单 HTML。"""
+    """将产业链摘要转为卡片式 HTML（与 _build_chain_cards 风格统一）。"""
     if not chain_summary:
         return "<p>暂无可用的产业链结构数据。</p>"
-    html = ['<div class="chain-framework">']
-    layers = {"upstream": "上游", "midstream": "中游", "downstream": "下游"}
+    
+    layers_map = {"upstream": "上游", "midstream": "中游", "downstream": "下游"}
+    
+    # 按层级分组
+    sorted_items = {"upstream": [], "midstream": [], "downstream": []}
     for item in chain_summary:
-        layer_cn = layers.get(item.get("layer", ""), item.get("layer", ""))
-        players = ", ".join(item.get("key_players", [])[:5])
-        html.append(f'<div class="chain-node">')
-        html.append(f'<span class="layer-tag">{layer_cn}</span>')
-        html.append(f'<strong>{item.get("node", "")}</strong>')
-        html.append(f'<span class="profit">{item.get("profit_pool", "")}</span>')
-        html.append(f'<span class="players">核心玩家: {players}</span>')
-        html.append('</div>')
-    html.append('</div>')
-    return "\n".join(html)
+        layer = item.get("layer", "midstream")
+        if layer not in sorted_items:
+            sorted_items[layer] = []
+        sorted_items[layer].append(item)
+    
+    html_parts = ['<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">']
+    for layer_key in ["upstream", "midstream", "downstream"]:
+        for item in sorted_items.get(layer_key, []):
+            layer_cn = layers_map.get(layer_key, layer_key)
+            players = ", ".join(item.get("key_players", [])[:5])
+            barrier = item.get("barrier", "")
+            bargain = item.get("bargain_power", "")
+            
+            parts = [
+                f'<div class="card" style="border-left:3px solid #2563eb;">',
+                f'<div style="font-weight:600;font-size:14px;color:#e2e8f0;margin-bottom:8px;">{layer_cn} · {item.get("node", "")}</div>',
+            ]
+            if item.get("profit_pool"):
+                parts.append(f'<div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">{item["profit_pool"]}</div>')
+            if players:
+                parts.append(f'<div style="font-size:12px;color:#cbd5e1;margin-bottom:4px;"><b>核心玩家：</b>{players}</div>')
+            if barrier:
+                parts.append(f'<div style="font-size:12px;color:#cbd5e1;margin-bottom:4px;"><b>壁垒：</b>{barrier}</div>')
+            if bargain:
+                parts.append(f'<div style="font-size:12px;color:#cbd5e1;"><b>议价权：</b>{bargain}</div>')
+            parts.append('</div>')
+            html_parts.append("".join(parts))
+    html_parts.append('</div>')
+    
+    # 底部总览（对齐 _build_chain_cards 风格）
+    up_count = len(sorted_items.get("upstream", []))
+    mid_count = len(sorted_items.get("midstream", []))
+    down_count = len(sorted_items.get("downstream", []))
+    html_parts.append(
+        '<div style="display:flex;gap:12px;margin-top:8px;">'
+        '<div style="flex:1;background:rgba(37,99,235,0.08);border-radius:8px;padding:10px 14px;font-size:12px;color:#94a3b8;">'
+        f'<b style="color:#e2e8f0;">产业链概览（框架降级）：</b>上游{up_count}环节 · 中游{mid_count}环节 · 下游{down_count}环节。'
+        '数据缺失，基于预设产业链框架生成。</div>'
+        '<div style="flex:1;background:rgba(37,99,235,0.08);border-radius:8px;padding:10px 14px;font-size:12px;color:#94a3b8;">'
+        '<b style="color:#e2e8f0;">数据状态：</b>框架降级模式 — 使用预设产业链结构，缺乏真实财务数据支撑。建议回填核心指标后重新生成。</div>'
+        '</div>'
+    )
+    return "\n".join(html_parts)
 
 
 # ═══════════════════════════════════════════════════════════════
