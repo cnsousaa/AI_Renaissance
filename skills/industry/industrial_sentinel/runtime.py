@@ -80,6 +80,17 @@ def run_industrial_sentinel(
 
         # ── Step 1: 加载数据 ──
         real_data = load_real_data(stock_code)
+        
+        # 数据缺失时自动触发采集
+        if not real_data:
+            try:
+                from scripts.auto_fetch import auto_fetch_and_save
+                logger.info(f"数据缺失，触发自动采集: {stock_code}")
+                auto_fetch_and_save(stock_code)
+                real_data = load_real_data(stock_code)  # 重试加载
+            except Exception as e:
+                logger.warning(f"自动采集失败: {e}")
+        
         stock_info = get_stock_info(stock_code, real_data)
 
         # ── Step 2: 运行核心分析（生命周期 + 拐点） ──
