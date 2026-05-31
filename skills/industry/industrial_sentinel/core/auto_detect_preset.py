@@ -269,8 +269,8 @@ def load_user_map(data_dir: Path) -> Dict[str, str]:
         try:
             with open(user_map_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("用户映射文件加载失败: %s", e)
     return {}
 
 
