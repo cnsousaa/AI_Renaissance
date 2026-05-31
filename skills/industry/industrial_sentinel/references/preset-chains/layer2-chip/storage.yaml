@@ -176,6 +176,53 @@ preset_indicators:
       current: "手机/PC温和复苏"
       source: "IDC/Canalys"
 
+cross_verify:
+  upstream:
+    - name: 存储颗粒原厂
+      metrics:
+        - "DRAM合约价环比+12%"
+        - "NAND Flash合约价环比+8%"
+      pool: []
+    - name: HBM/先进封装
+      metrics:
+        - "HBM3E产能缺口>40%"
+        - "HBM4样品送样NVDA验证"
+      pool: ["688525.SH"]
+    - name: 存储控制器/接口芯片
+      metrics:
+        - "DDR5渗透率突破65%"
+        - "PCIe 5.0 Retimer需求翻倍"
+      pool: ["688008.SH"]
+  midstream:
+    - name: 存储模组/SSD
+      metrics:
+        - "企业级SSD出货量同比+55%"
+        - "QLC SSD占比突破30%"
+      pool: ["688525.SH", "301308.SZ"]
+    - name: 内存模组
+      metrics:
+        - "DDR5内存模组均价+15%"
+        - "CXL内存扩展模组出货"
+      pool: ["301308.SZ"]
+  downstream:
+    - name: AI服务器/算力
+      metrics:
+        - "单台AI服务器DRAM容量256GB→512GB"
+        - "AI服务器SSD容量翻倍"
+      pool: ["300476.SZ"]
+    - name: 智能手机/PC
+      metrics:
+        - "手机DRAM容量8GB→12GB"
+        - "AI PC拉动内存升级周期"
+      pool: ["002475.SZ"]
+  external_indicators:
+    - name: "三星/SK海力士CAPEX"
+      metric: "2026合计$750亿+"
+      source: "公司公告/韩媒"
+    - name: "DRAMeXchange指数"
+      metric: "DXI指数年内+35%"
+      source: "TrendForce"
+
 preset_companies:
   - code: "688525.SH"
     name: 佰维存储
