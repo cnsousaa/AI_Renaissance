@@ -317,10 +317,6 @@ def get_adaptive_weights(
 
 
 # V4.5 helper for safe nested dict access
-def _safe_get(metrics: dict, dim: str, key: str):
-    d = metrics.get(dim, {})
-    return d.get(key)
-
 
 def get_stock_type_description(stock_type: str) -> Dict[str, str]:
     """
