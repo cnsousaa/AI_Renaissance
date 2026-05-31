@@ -51,7 +51,6 @@ from core.system_b import (
     get_adaptive_weights,
 )
 
-
 # ═══════════════════════════════════════════════════════════════
 # Step 1: 加载真实数据
 # ═══════════════════════════════════════════════════════════════
@@ -120,7 +119,6 @@ def get_stock_info(stock_code: str, real_data: Optional[Dict]) -> Dict[str, str]
         "chain_position": "数据缺失",
         "preset": "generic",
     }
-
 
 # ═══════════════════════════════════════════════════════════════
 # 数据安全转换辅助
@@ -246,7 +244,6 @@ def determine_lifecycle_from_real_data(real_data: Optional[Dict]) -> Dict[str, A
         "analysis": analysis,
     }
 
-
 # ═══════════════════════════════════════════════════════════════
 # Step 3: 拐点判定（基于真实信号）
 # ═══════════════════════════════════════════════════════════════
@@ -323,7 +320,6 @@ def determine_inflection_from_real_data(real_data: Optional[Dict]) -> Dict[str, 
         "inflection_logic": real_data.get("inflection_logic", f"状态: {result.state_name} — 匹配 {len(result.matched_signals)} 个信号"),
     }
 
-
 # ═══════════════════════════════════════════════════════════════
 # Step 4: System B 类型判定（无评分）
 # ═══════════════════════════════════════════════════════════════
@@ -363,7 +359,6 @@ def determine_system_b_from_real_data(real_data: Optional[Dict]) -> Dict[str, An
         "risks": risks_html,
     }
 
-
 # ═══════════════════════════════════════════════════════════════
 # Step 5: 产业链结构（从references加载）
 # ═══════════════════════════════════════════════════════════════
@@ -397,7 +392,6 @@ def load_preset_yaml(preset_name: str) -> Optional[Dict[str, Any]]:
         pass
     
     return None
-
 
 def load_cross_verify_data(cross_verify: Dict[str, Any]) -> Dict[str, Any]:
     """加载交叉验证数据 — 新结构：以产业链环节为单位，从标的池取数据"""
@@ -436,7 +430,6 @@ def load_cross_verify_data(cross_verify: Dict[str, Any]) -> Dict[str, Any]:
         result["external"].append(ext)
     
     return result
-
 
 def build_cross_verify_html(cross_data: Dict[str, Any], preset_name: str) -> str:
     """生成交叉验证分析HTML — 以产业链环节为单位"""
@@ -487,8 +480,6 @@ def build_cross_verify_html(cross_data: Dict[str, Any], preset_name: str) -> str
         '</div>'
     )
 
-
-
 def load_industry_chain(stock_info: Dict[str, str]) -> str:
     """加载产业链结构说明（V4.5精简卡片版）"""
     industry_name = stock_info.get("industry", "")
@@ -508,8 +499,6 @@ def load_industry_chain(stock_info: Dict[str, str]) -> str:
         cross_verify_html = build_cross_verify_html(cross_data, preset_name)
     
     return cards_html + cross_verify_html
-
-
 
 def _build_chain_cards(preset_data, chain_position: str, industry_name: str) -> str:
     """从YAML动态读取产业链结构卡片（V4.5通用版）"""
@@ -609,7 +598,6 @@ def _build_chain_cards(preset_data, chain_position: str, industry_name: str) -> 
     
     return "\n".join(html_parts)
 
-
 # ═══════════════════════════════════════════════════════════════
 # Step 6: HTML 生成（V4 模板）
 # ═══════════════════════════════════════════════════════════════
@@ -705,7 +693,6 @@ def generate_html_v45(
 
     return html
 
-
 # ═══════════════════════════════════════════════════════════════
 # 数据缺失降级：基于 preset YAML 生成框架级信号
 # ═══════════════════════════════════════════════════════════════
@@ -782,7 +769,6 @@ def build_framework_from_preset(stock_code: str, preset_name: str) -> Dict[str, 
         "yaml_data": yaml_data,
     }
 
-
 def _chain_summary_to_html(chain_summary: list) -> str:
     """将产业链摘要转为卡片式 HTML（与 _build_chain_cards 风格统一）。"""
     if not chain_summary:
@@ -836,7 +822,6 @@ def _chain_summary_to_html(chain_summary: list) -> str:
         '</div>'
     )
     return "\n".join(html_parts)
-
 
 # ═══════════════════════════════════════════════════════════════
 # 主流程
@@ -914,8 +899,7 @@ def run_pipeline(stock_code: str) -> str:
     # Step 1.5: 自动检测 preset（如果未配置）
     preset_name = stock_info.get("preset", "")
     if not preset_name or preset_name == "generic":
-        from core.auto_detect_preset import auto_detect_preset
-        detected = auto_detect_preset(stock_code, DATA_DIR)
+
         if detected:
             stock_info["preset"] = detected
             logger.info("[Step 1.5] 自动检测到 preset: %s", detected)
@@ -1012,7 +996,6 @@ def run_pipeline(stock_code: str) -> str:
     logger.info("输出文件: %s", out_path)
     logger.info("=" * 50)
     return str(out_path)
-
 
 if __name__ == "__main__":
     import argparse
