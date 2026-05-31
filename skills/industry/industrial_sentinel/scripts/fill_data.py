@@ -52,6 +52,16 @@ FIELD_TO_PATH = {
     "fixed_asset": "real_signals.fixed_asset",
     "total_asset": "real_signals.total_asset",
     "capex_plan": "real_signals.capex_plan",
+    # V4.6 新增: 结构转型 + 趋势 + 行业验证字段
+    "segment_data": "real_signals.segment_data",
+    "gross_margin_history": "real_signals.gross_margin_history",
+    "market_share": "real_signals.market_share",
+    "major_customer_orders": "real_signals.major_customer_orders",
+    "inflection_signals": "real_signals.inflection_signals",
+    "lifecycle_signals": "real_signals.lifecycle_signals",
+    # V4.6 新增: A股可获取的替代指标
+    "contract_liability": "real_signals.contract_liability",
+    "fixed_asset_turnover": "real_signals.fixed_asset_turnover",
 }
 
 # ========== capex_plan 枚举校验 ==========
@@ -176,7 +186,8 @@ def fill_field(
     # 更新缺失计数
     rs = data.get("real_signals", {})
     core_fields = ["revenue_growth", "gross_margin", "order_backlog",
-                   "capacity_utilization", "price_yoy", "inventory_days"]
+                   "capacity_utilization", "price_yoy", "inventory_days",
+                   "contract_liability", "fixed_asset_turnover"]
     missing = sum(1 for f in core_fields if rs.get(f) is None)
     data["_missing_count"] = missing
     data["_last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -242,6 +253,7 @@ def show_missing(stock_code: str) -> List[str]:
     rs = data.get("real_signals", {})
     core_fields = ["revenue_growth", "gross_margin", "order_backlog",
                    "capacity_utilization", "price_yoy", "inventory_days",
+                   "contract_liability", "fixed_asset_turnover",
                    "rd_ratio", "net_profit_parent"]
     missing = [f for f in core_fields if rs.get(f) is None]
     filled = [f for f in core_fields if rs.get(f) is not None]
