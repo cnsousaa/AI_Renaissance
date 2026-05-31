@@ -103,6 +103,53 @@ value_allocation:
   downstream_share: "35-40%"
   bargain_power: "中游制造端(台积电/SK海力士)议价权最强，下游设计端英伟达垄断"
 
+cross_verify:
+  upstream:
+    - name: 半导体材料（硅片/光刻胶/特气）
+      metrics:
+        - "12英寸硅片价格趋势"
+        - "光刻胶国产化率<5%"
+      pool: ["688981.SH", "688012.SH"]
+    - name: 半导体设备（光刻/刻蚀/薄膜）
+      metrics:
+        - "国产设备采购占比突破30%"
+        - "光刻机交付周期>18个月"
+      pool: ["002371.SZ", "688012.SH"]
+    - name: 先进封装材料（ABF/Underfill）
+      metrics:
+        - "ABF载板供需缺口>15%"
+        - "Underfill需求量年增40%"
+      pool: ["002916.SZ"]
+  midstream:
+    - name: 晶圆制造/先进制程
+      metrics:
+        - "台积电3nm/2nm产能利用率>95%"
+        - "CoWoS产能缺口50-60%"
+      pool: ["688981.SH"]
+    - name: 存储制造（HBM3E/4）
+      metrics:
+        - "HBM3E占DRAM产能15%→25%"
+        - "SK海力士2026HBM产能已售罄"
+      pool: ["688525.SH"]
+  downstream:
+    - name: GPU/加速器芯片设计
+      metrics:
+        - "英伟达B200出货量环比+60%"
+        - "ASIC芯片设计案同比+80%"
+      pool: ["688256.SH", "688041.SH"]
+    - name: 光互连/CPO
+      metrics:
+        - "CPO渗透率从3%→8%"
+        - "硅光集成良率突破85%"
+      pool: ["688313.SH"]
+  external_indicators:
+    - name: "全球半导体设备销售额"
+      metric: "$1250亿，+18% YoY"
+      source: "SEMI 2026Q1"
+    - name: "台积电CAPEX指引"
+      metric: "$400亿+，主要投向2nm/CoWoS"
+      source: "台积电法说会"
+
 investment_thesis: |
   芯片层是AI的引擎，正经历从训练到推理的结构性转变。
   核心矛盾：推理需求爆发(千倍增长) vs 产能扩张刚性(18-24个月扩产周期)。
