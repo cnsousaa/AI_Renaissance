@@ -48,6 +48,50 @@ class WeightedScoreResult:
 # 一、个股类型识别规则
 # ═══════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════
+# P1-3: 行业资产轻重基准值
+# 基于产业链特性校准 — Fabless≈0.90, 重资产制造≈0.35-0.45
+# ═══════════════════════════════════════════════════════════════
+PRESET_ASSET_BENCHMARKS = {
+    # ── 轻资产 / Fabless ──
+    "ai-chip": 0.85,               # Fabless芯片设计
+    "optical-module": 0.75,        # 光模块设计+部分制造
+    "ai-model": 0.90,              # 纯软件/IP
+    # ── 混合型 ──
+    "storage": 0.60,              # 存储模组(设计+封测)
+    "robotics": 0.55,             # 机器人(硬件+软件混合)
+    # ── 重资产制造 ──
+    "semiconductor-equipment": 0.45,  # 半导体设备(制造)
+    "ai-infrastructure": 0.50,        # AI服务器/数据中心
+    "pcb": 0.35,                      # PCB(重资产制造)
+    "ai-energy": 0.35,                # 能源(核能/光伏)
+    "generic": 0.70,                  # 默认中性
+}
+# 行业名→基准值（兼容行业名查找）
+INDUSTRY_ASSET_BENCHMARKS = {
+    "半导体设计": 0.85, "芯片设计": 0.85, "Fabless": 0.90,
+    "光模块": 0.75, "光通信": 0.75,
+    "AI模型": 0.90, "大模型": 0.90, "SaaS": 0.90,
+    "半导体设备": 0.45, "设备制造": 0.45,
+    "PCB": 0.35, "印制电路板": 0.35,
+    "存储": 0.60, "存储芯片": 0.60,
+    "机器人": 0.55, "人形机器人": 0.55,
+    "服务器": 0.50, "数据中心": 0.50, "IDC": 0.50,
+    "能源": 0.35, "电力": 0.40, "光伏": 0.35, "核能": 0.30,
+    "制造业": 0.40, "化工": 0.35, "有色金属": 0.35, "钢铁": 0.30,
+}
+
+def get_asset_lightness_benchmark(preset_name: str = None, industry_name: str = None) -> float:
+    """获取行业资产轻重的基准值。先查preset，再查行业名，最后默认0.70。"""
+    if preset_name and preset_name in PRESET_ASSET_BENCHMARKS:
+        return PRESET_ASSET_BENCHMARKS[preset_name]
+    if industry_name:
+        industry_lower = industry_name.lower()
+        for kw, val in INDUSTRY_ASSET_BENCHMARKS.items():
+            if kw.lower() in industry_lower:
+                return val
+    return 0.70
+
 def identify_stock_type(
     industry: str,
     revenue_growth: float,
