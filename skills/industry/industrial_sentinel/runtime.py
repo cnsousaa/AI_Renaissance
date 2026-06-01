@@ -209,7 +209,7 @@ def run_industrial_sentinel(
             "confidence": confidence,
             "reasoning": (
                 inflection.get(
-                    "reasoning",
+                    "inflection_logic",
                     f"{stock_info.get('stock_name', '')}: {state_name} | {stage}",
                 ) + (
                     f" | ⚠️ 数据{data_quality}，建议回填核心指标后重新分析" 
