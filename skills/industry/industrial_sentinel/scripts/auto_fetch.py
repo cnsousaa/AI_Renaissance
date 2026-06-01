@@ -39,6 +39,26 @@ FIELD_MAP = {
 }
 
 
+def fetch_from_akshare(stock_code: str) -> dict:
+    """akshare 备用通道 — 需安装 akshare 包才能使用"""
+    try:
+        import akshare as ak
+        code = _clean_code(stock_code)
+        df = ak.stock_financial_analysis_indicator(symbol=code)
+        signals = {}
+        if not df.empty:
+            latest = df.iloc[0]
+            for field, cn_name in FIELD_MAP.items():
+                if cn_name in latest.index and latest[cn_name] is not None:
+                    try:
+                        signals[field] = float(latest[cn_name])
+                    except (ValueError, TypeError):
+                        pass
+        return signals
+    except Exception:
+        return {}
+
+
 def _clean_code(stock_code: str) -> str:
     """去后缀, 保留6位数字"""
     return re.sub(r"\.(SH|SZ|BJ|HK)$", "", stock_code.upper())
