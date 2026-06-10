@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-V4.6 自动数据抓取 — 东方财富 push2 API + akshare 双通道
+自动数据抓取 — 东方财富 push2 API + akshare 双通道
 
 用法:
     python3 scripts/auto_fetch.py 688521.SH      # 单个股票

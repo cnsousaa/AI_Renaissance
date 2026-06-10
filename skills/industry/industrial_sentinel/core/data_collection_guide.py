@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Industrial Sentinel V4.5 — AI数据采集任务生成器
+Industrial Sentinel — AI数据采集任务生成器
 
 核心功能：
 1. 输入产业链类型（preset）或股票代码
@@ -493,7 +493,7 @@ def generate_collection_guide(preset_name: str, stock_code: str = "", stock_name
     
     guide = {
         "meta": {
-            "version": "V4.5",
+            "version": "1.0",
             "preset": preset_name,
             "industry": industry,
             "stock_code": stock_code,
@@ -563,7 +563,7 @@ def main():
     import argparse
     from datetime import datetime
     
-    parser = argparse.ArgumentParser(description="V4.5 AI数据采集任务生成器")
+    parser = argparse.ArgumentParser(description="AI数据采集任务生成器")
     parser.add_argument("preset_or_code", help="产业链preset名称或股票代码")
     parser.add_argument("--stock-code", "-c", help="股票代码（如002916.SZ）")
     parser.add_argument("--stock-name", "-n", help="股票名称（如深南电路）")
@@ -604,7 +604,7 @@ def main():
     # 输出摘要
     meta = guide["meta"]
     print(f"\n{'='*60}")
-    print(f"V4.5 AI数据采集任务清单")
+    print(f"AI数据采集任务清单")
     print(f"{'='*60}")
     print(f"产业链: {meta['industry']}")
     print(f"Preset: {meta['preset']}")

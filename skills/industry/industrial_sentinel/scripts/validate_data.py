@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Industrial Sentinel V4.5 — 数据验证器
+Industrial Sentinel — 数据验证器
 
 用法:
     python scripts/validate_data.py <stock_code>
 
 功能:
-    验证 real_data.json 是否符合 V4.5 标准格式，检查必填字段和数据质量。
+    验证 real_data.json 是否符合 标准格式，检查必填字段和数据质量。
     输出验证报告：通过/警告/错误。
 """
 
@@ -20,7 +20,7 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 
 
 def _safe_num(value):
-    """安全地将输入值转换为数字。V4.5兼容显式字符串占位（如「数据缺失」）。"""
+    """安全地将输入值转换为数字。兼容显式字符串占位（如「数据缺失」）。"""
     if value is None:
         return None
     if isinstance(value, (int, float)):
@@ -38,7 +38,7 @@ def _safe_num(value):
 
 
 class DataValidator:
-    """V4.5 数据验证器"""
+    """数据验证器"""
     
     # 必填字段定义
     REQUIRED_TOP_KEYS = [
@@ -71,10 +71,10 @@ class DataValidator:
         return len(self.errors) == 0, self.errors, self.warnings, self.info
     
     def _validate_structure(self):
-        """验证顶层结构 — V4.5缺数据不阻塞，降级为警告"""
+        """验证顶层结构 — 缺数据不阻塞，降级为警告"""
         for key in self.REQUIRED_TOP_KEYS:
             if key not in self.data:
-                self.warnings.append(f"缺少字段: {key}（V4.5可降级输出）")
+                self.warnings.append(f"缺少字段: {key}（可降级输出）")
         
         if "real_signals" in self.data:
             signals = self.data["real_signals"]
@@ -86,7 +86,7 @@ class DataValidator:
         """验证信号数据质量"""
         signals = self.data.get("real_signals", {})
         
-        # 检查数值字段 — V4.5 允许字符串"数据缺失"作为显式占位
+        # 检查数值字段 — 允许字符串"数据缺失"作为显式占位
         numeric_keys = ["revenue_growth", "gross_margin", "order_backlog", 
                        "capacity_utilization", "price_yoy", "inventory_days"]
         for key in numeric_keys:
@@ -94,7 +94,7 @@ class DataValidator:
             if val is None:
                 self.warnings.append(f"{key} = null（数据缺失，报告将显示「数据缺失」）")
             elif isinstance(val, str) and val.strip() == "数据缺失":
-                # V4.5 显式占位，合法
+                # 显式占位，合法
                 pass
             elif not isinstance(val, (int, float)):
                 self.warnings.append(f"{key} 类型错误: {type(val).__name__}（应为数字或「数据缺失」）")
@@ -201,7 +201,7 @@ def print_report(code: str, passed: bool, errors: List[str], warnings: List[str]
 
 
 def main():
-    parser = argparse.ArgumentParser(description="验证 V4.5 数据文件")
+    parser = argparse.ArgumentParser(description="验证 数据文件")
     parser.add_argument("stock_code", help="股票代码")
     args = parser.parse_args()
     

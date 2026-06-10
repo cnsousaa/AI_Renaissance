@@ -53,14 +53,14 @@ FIELD_TO_PATH = {
     "fixed_asset": "real_signals.fixed_asset",
     "total_asset": "real_signals.total_asset",
     "capex_plan": "real_signals.capex_plan",
-    # V4.6 新增: 结构转型 + 趋势 + 行业验证字段
+    # 新增: 结构转型 + 趋势 + 行业验证字段
     "segment_data": "real_signals.segment_data",
     "gross_margin_history": "real_signals.gross_margin_history",
     "market_share": "real_signals.market_share",
     "major_customer_orders": "real_signals.major_customer_orders",
     "inflection_signals": "real_signals.inflection_signals",
     "lifecycle_signals": "real_signals.lifecycle_signals",
-    # V4.6 新增: A股可获取的替代指标
+    # 新增: A股可获取的替代指标
     "contract_liability": "real_signals.contract_liability",
     "fixed_asset_turnover": "real_signals.fixed_asset_turnover",
 }

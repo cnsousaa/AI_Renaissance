@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Industrial Sentinel V4.5 — 数据模板生成器
+Industrial Sentinel — 数据模板生成器
 
 用法:
     python scripts/generate_data_template.py <stock_code> [options]
@@ -26,7 +26,7 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 
 def generate_template(stock_code: str, stock_name: str, industry: str,
                     sub_sector: str, chain_position: str) -> dict:
-    """生成标准化数据模板（V4.5 方法论框架版）
+    """生成标准化数据模板（方法论框架版）
     
     重要说明：
     本框架是方法论，不是黑箱工具。你需要用自己的AI/Agent搜索数据填入此模板，
@@ -45,7 +45,7 @@ def generate_template(stock_code: str, stock_name: str, industry: str,
     
     template = {
         "_meta": {
-            "framework": "Industrial Sentinel V4.5",
+            "framework": "Industrial Sentinel",
             "type": "methodology_framework — 填入数据后自动推理",
             "docs": {
                 "data_requirements": "references/data-requirements.md",
@@ -249,7 +249,7 @@ def print_search_guide(stock_code: str, stock_name: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="生成 Industrial Sentinel V4.5 数据模板"
+        description="生成 Industrial Sentinel 数据模板"
     )
     parser.add_argument("stock_code", help="股票代码，如 002916.SZ 或 AXTI.US")
     parser.add_argument("--name", "-n", default="", help="股票名称")

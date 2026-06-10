@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Industrial Sentinel V4.5 端到端流水线 — 真实数据版
+Industrial Sentinel 端到端流水线 — 真实数据版
 Pipeline: 股票代码 → 加载真实数据 → 拐点判定 → 类型分析 → HTML仪表盘
 
 用法:
@@ -92,12 +92,12 @@ def load_real_data(stock_code: str) -> Optional[Dict[str, Any]]:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                logger.info("[V4.5] 加载真实数据: %s", path.name)
+                logger.info("加载真实数据: %s", path.name)
                 return data
             except Exception as e:
                 logger.error("加载数据失败 %s: %s", path, e)
                 continue
-    logger.warning("[V4.5] 未找到 %s 的真实数据，所有指标将标记为「数据缺失」", stock_code)
+    logger.warning("未找到 %s 的真实数据，所有指标将标记为「数据缺失」", stock_code)
     return None
 
 def get_stock_info(stock_code: str, real_data: Optional[Dict]) -> Dict[str, str]:
@@ -125,7 +125,7 @@ def get_stock_info(stock_code: str, real_data: Optional[Dict]) -> Dict[str, str]
 # ═══════════════════════════════════════════════════════════════
 
 def _safe_num(value) -> Optional[float]:
-    """安全地将输入值转换为数字。V4.5兼容显式字符串占位（如「数据缺失」）。
+    """安全地将输入值转换为数字。兼容显式字符串占位（如「数据缺失」）。
     
     Returns:
         float: 成功转换的数值
@@ -152,7 +152,7 @@ def _safe_num(value) -> Optional[float]:
 # ═══════════════════════════════════════════════════════════════
 
 def determine_lifecycle_from_segments(segment_data: list) -> dict:
-    """V4.6: 多业务公司分部判定。
+    """多业务公司分部判定。
     新业务(增速>50%)占比>=30% + 旧业务(增速<0%) → 结构转型"""
     if not segment_data or len(segment_data) < 2:
         return None
@@ -203,7 +203,7 @@ def determine_lifecycle_from_real_data(real_data: Optional[Dict]) -> Dict[str, A
 
     signals = real_data.get("real_signals", {})
     
-    # V4.6 优化1: 优先检查结构转型
+    # 优化1: 优先检查结构转型
     seg_data = signals.get("segment_data", [])
     if seg_data and len(seg_data) >= 2:
         seg_result = determine_lifecycle_from_segments(seg_data)
@@ -290,13 +290,13 @@ def determine_lifecycle_from_real_data(real_data: Optional[Dict]) -> Dict[str, A
 # ═══════════════════════════════════════════════════════════════
 
 def cross_validate_with_industry(real_data):
-    """V4.6 stub: 跨行业交叉验证。后续接入产业链数据库做实质验证。"""
+    """stub: 跨行业交叉验证。后续接入产业链数据库做实质验证。"""
     return {"validation_signals": []}
 
 
 def determine_inflection_from_real_data(real_data: Optional[Dict]) -> Dict[str, Any]:
     """
-    调用 system_a.determine_inflection_state 的 V4.5 路径（real_signals）。
+    调用 system_a.determine_inflection_state 的 路径（real_signals）。
     """
     if not real_data:
         return {
@@ -309,8 +309,8 @@ def determine_inflection_from_real_data(real_data: Optional[Dict]) -> Dict[str, 
         }
 
     signals = real_data.get("real_signals", {})
-    # 调用 system_a 的 V4.5 真实信号路径
-    # V4.6 优化3: 行业交叉验证信号注入
+    # 调用 system_a 的 真实信号路径
+    # 优化3: 行业交叉验证信号注入
     cross_result = cross_validate_with_industry(real_data)
     validation_signals = cross_result.get("validation_signals", [])
     if validation_signals:
@@ -366,15 +366,17 @@ def determine_inflection_from_real_data(real_data: Optional[Dict]) -> Dict[str, 
             )
 
     inflection_data_cards_html = "\n".join(data_cards)
+    matched_signals_list = result.matched_signals if result.matched_signals else []
     matched_signals_text = "、".join(
-    [s.get("signal", str(s)) if isinstance(s, dict) else str(s) for s in result.matched_signals]
-) if result.matched_signals else "无明确匹配信号"
+    [s.get("signal", str(s)) if isinstance(s, dict) else str(s) for s in matched_signals_list]
+) if matched_signals_list else "无明确匹配信号"
 
     return {
         "state_name": result.state_name,
         "state_color": result.color_hex,
         "state_color_bg": f"rgba({int(result.color_hex[1:3],16)},{int(result.color_hex[3:5],16)},{int(result.color_hex[5:7],16)},0.12)",
         "matched_signals": matched_signals_text,
+        "matched_signals_list": matched_signals_list,
         "inflection_data_cards": inflection_data_cards_html,
         "inflection_logic": real_data.get("inflection_logic", f"状态: {result.state_name} — 匹配 {len(result.matched_signals)} 个信号"),
     }
@@ -540,7 +542,7 @@ def build_cross_verify_html(cross_data: Dict[str, Any], preset_name: str) -> str
     )
 
 def load_industry_chain(stock_info: Dict[str, str]) -> str:
-    """加载产业链结构说明（V4.5精简卡片版）"""
+    """加载产业链结构说明（精简卡片版）"""
     industry_name = stock_info.get("industry", "")
     chain_position = stock_info.get("chain_position", "")
     preset_name = stock_info.get("preset", "generic")
@@ -560,7 +562,7 @@ def load_industry_chain(stock_info: Dict[str, str]) -> str:
     return cards_html + cross_verify_html
 
 def _build_chain_cards(preset_data, chain_position: str, industry_name: str) -> str:
-    """从YAML动态读取产业链结构卡片（V4.5通用版）"""
+    """从YAML动态读取产业链结构卡片（通用版）"""
     
     if not preset_data:
         # 无preset数据时回退到占位符
@@ -904,19 +906,30 @@ def save_history(stock_code: str, snapshot: Dict[str, Any]):
     except Exception as e:
         logger.warning(f"历史记录保存失败: {e}")
 
-def run_pipeline(stock_code: str) -> str:
-    """运行完整流水线，返回生成的HTML文件路径"""
+def run_pipeline(stock_code: str, real_data: Optional[Dict[str, Any]] = None, generate_html: bool = True) -> str:
+    """运行完整流水线，返回生成的HTML文件路径
+
+    Args:
+        stock_code: 股票代码
+        real_data: 可选，由调用方传入的实时数据 dict。若提供则直接使用，
+                   不再从本地 JSON 重新加载，确保 Signal 与 HTML 报告数据一致。
+        generate_html: 是否生成 HTML 报告文件。当作为 Agent Skill 被调用时
+                       应设为 False，避免重复生成报告；独立 CLI 使用时保持 True。
+    """
     logger.info("=" * 50)
-    logger.info("Industrial Sentinel V4.5 流水线启动")
+    logger.info("Industrial Sentinel 流水线启动")
     logger.info("目标标的: %s", stock_code)
     logger.info("=" * 50)
 
-    # Step 1: 加载真实数据
-    real_data = load_real_data(stock_code)
+    # Step 1: 加载真实数据（优先使用调用方传入的数据）
+    if real_data is None:
+        real_data = load_real_data(stock_code)
+    else:
+        logger.info("[Step 1] 使用调用方传入的实时数据，跳过本地 JSON 加载")
 
     # Step 1.0: 数据缺失 — 优先自动抓取，再降级
     if real_data is None:
-        # V4.6: 尝试自动抓取
+        #: 尝试自动抓取
         try:
             from scripts.auto_fetch import auto_fetch_and_save
             fetched = auto_fetch_and_save(stock_code)
@@ -947,23 +960,27 @@ def run_pipeline(stock_code: str) -> str:
         system_b = framework["system_b"]
         chain_summary = framework["chain_summary"]
 
-        # 生成降级 HTML
-        html = generate_html_v45(
-            stock_info=stock_info,
-            lifecycle=lifecycle,
-            inflection=inflection,
-            system_b=system_b,
-            industry_data=[],
-            chain_html=_chain_summary_to_html(chain_summary),
-        )
-        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_code = re.sub(r"[^A-Za-z0-9]", "_", stock_code)
-        out_path = REPORTS_DIR / f"{safe_code}_framework_{timestamp}.html"
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(html)
-        logger.info("框架降级报告: %s", out_path)
-        return str(out_path)
+        # 生成降级 HTML（仅在独立 CLI 模式下生成）
+        if generate_html:
+            html = generate_html_v45(
+                stock_info=stock_info,
+                lifecycle=lifecycle,
+                inflection=inflection,
+                system_b=system_b,
+                industry_data=[],
+                chain_html=_chain_summary_to_html(chain_summary),
+            )
+            REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            safe_code = re.sub(r"[^A-Za-z0-9]", "_", stock_code)
+            out_path = REPORTS_DIR / f"{safe_code}_framework_{timestamp}.html"
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            logger.info("框架降级报告: %s", out_path)
+            return str(out_path)
+        else:
+            logger.info("框架降级模式 (Agent 模式，跳过 HTML 生成)")
+            return ""
 
     stock_info = get_stock_info(stock_code, real_data)
     logger.info("[Step 1] 股票信息: %s (%s)", stock_info["stock_name"], stock_info["stock_code"])
@@ -971,20 +988,28 @@ def run_pipeline(stock_code: str) -> str:
     # Step 1.5: 自动检测 preset（如果未配置）
     preset_name = stock_info.get("preset", "")
     if not preset_name or preset_name == "generic":
+        # 无论 real_data 是否存在，都尝试自动检测 preset
+        if detected is None:
+            try:
+                from core.auto_detect_preset import auto_detect_preset
+                detected = auto_detect_preset(stock_code, DATA_DIR)
+            except Exception as e:
+                logger.debug("auto_detect_preset 失败: %s", e)
 
         if detected:
             stock_info["preset"] = detected
             logger.info("[Step 1.5] 自动检测到 preset: %s", detected)
-            # 如果行业名称缺失，从YAML补充
-            if stock_info.get("industry") in ("数据缺失", "", None):
-                yaml_data = load_preset_yaml(detected)
-                if yaml_data:
-                    stock_info["industry"] = yaml_data.get("industry_name", detected)
-                    logger.info("[Step 1.5] 从YAML补充行业名称: %s", stock_info["industry"])
         else:
             logger.warning("[Step 1.5] 无法自动检测 preset，使用 generic 模板")
     else:
         logger.info("[Step 1.5] 使用配置 preset: %s", preset_name)
+
+    # 如果行业名称缺失，从 preset YAML 补充（无论 preset 怎么来的）
+    if stock_info.get("industry") in ("数据缺失", "", None):
+        yaml_data = load_preset_yaml(stock_info.get("preset", ""))
+        if yaml_data:
+            stock_info["industry"] = yaml_data.get("industry_name", stock_info["preset"])
+            logger.info("[Step 1.5] 从YAML补充行业名称: %s", stock_info["industry"])
 
     # Step 1.6: 数据完整性检查 — 缺失较多时自动生成AI采集任务清单
     missing_count = 0
@@ -1031,7 +1056,7 @@ def run_pipeline(stock_code: str) -> str:
     lifecycle = determine_lifecycle_from_real_data(real_data)
     logger.info("[Step 2] 生命周期: %s", lifecycle["stage"])
 
-    # Step 3: 拐点判定（V4.5 真实信号路径）
+    # Step 3: 拐点判定（真实信号路径）
     inflection = determine_inflection_from_real_data(real_data)
     logger.info("[Step 3] 拐点状态: %s", inflection["state_name"])
 
@@ -1045,33 +1070,39 @@ def run_pipeline(stock_code: str) -> str:
     # Step 6: 行业数据
     industry_data = real_data.get("industry_data", []) if real_data else []
 
-    # Step 7: 生成 HTML
-    html = generate_html_v45(
-        stock_info=stock_info,
-        lifecycle=lifecycle,
-        inflection=inflection,
-        system_b=system_b,
-        industry_data=industry_data,
-        chain_html=chain_html,
-    )
+    # Step 7: 生成 HTML（仅在独立 CLI 模式下生成，Agent 集成模式跳过）
+    if generate_html:
+        html = generate_html_v45(
+            stock_info=stock_info,
+            lifecycle=lifecycle,
+            inflection=inflection,
+            system_b=system_b,
+            industry_data=industry_data,
+            chain_html=chain_html,
+        )
 
-    # 保存
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_code = re.sub(r"[^A-Za-z0-9]", "_", stock_code)
-    out_path = REPORTS_DIR / f"{safe_code}_v45_{timestamp}.html"
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(html)
+        # 保存
+        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_code = re.sub(r"[^A-Za-z0-9]", "_", stock_code)
+        out_path = REPORTS_DIR / f"{safe_code}_v45_{timestamp}.html"
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(html)
 
-    logger.info("=" * 50)
-    logger.info("V4.5 流水线完成 ✅")
-    logger.info("输出文件: %s", out_path)
-    logger.info("=" * 50)
-    return str(out_path)
+        logger.info("=" * 50)
+        logger.info("流水线完成 ✅")
+        logger.info("输出文件: %s", out_path)
+        logger.info("=" * 50)
+        return str(out_path)
+    else:
+        logger.info("=" * 50)
+        logger.info("流水线完成 ✅ (Agent 模式，跳过 HTML 生成)")
+        logger.info("=" * 50)
+        return ""
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Industrial Sentinel V4.5")
+    parser = argparse.ArgumentParser(description="Industrial Sentinel")
     parser.add_argument("stock_code", help="股票代码/名称")
     parser.add_argument("--preset", help="强制指定产业链preset")
     parser.add_argument("--auto", action="store_true", help="强制自动检测preset")
