@@ -196,7 +196,42 @@ def analyze(rows: List[OhlcvRow], stock_code: str = "", target: str = "", source
     ]
 
     period = f"{dates[0]} 至 {dates[-1]}" if dates else ""
-    reasoning = f"震荡类综合：bullish={bullish}, bearish={bearish}，输出 {direction}。"
+    # 自然语言推理：各振荡指标逐一解读
+    _parts = []
+    if last_rsi > 80:
+        _parts.append(f"RSI(14)为{last_rsi:.1f}，进入超买区域，短期回调风险上升")
+    elif last_rsi < 20:
+        _parts.append(f"RSI(14)为{last_rsi:.1f}，进入超卖区域，存在反弹修复预期")
+    else:
+        _parts.append(f"RSI(14)为{last_rsi:.0f}，运行于中性区间，未出现极端超买超卖信号")
+    if last_k > 80 and last_d > 80:
+        _parts.append(f"KDJ指标K值{last_k:.0f}、D值{last_d:.0f}双双高于80，处于超买区")
+    elif last_k < 20 and last_d < 20:
+        _parts.append(f"KDJ指标K值{last_k:.0f}、D值{last_d:.0f}双双低于20，处于超卖区")
+    else:
+        _parts.append(f"KDJ指标K={last_k:.0f}、D={last_d:.0f}、J={last_j:.0f}，处于中性区间")
+    if math.isfinite(last_mid):
+        if math.isfinite(last_upper) and last_close >= last_upper:
+            _parts.append(f"价格触及布林带上轨（上轨{last_upper:.1f}、中轨{last_mid:.1f}），短期或有回调压力")
+        elif math.isfinite(last_lower) and last_close <= last_lower:
+            _parts.append(f"价格触及布林带下轨（下轨{last_lower:.1f}、中轨{last_mid:.1f}），短期或有支撑反弹")
+        else:
+            _parts.append(f"价格位于布林带中轨({last_mid:.1f}元)附近运行，波动率正常")
+    if macd_dir == "bullish":
+        _parts.append(f"MACD指标DIF({last_dif:.2f})上穿DEA({last_dea:.2f})，金叉形态，动能偏多")
+    elif macd_dir == "bearish":
+        _parts.append(f"MACD指标DIF({last_dif:.2f})下穿DEA({last_dea:.2f})，死叉形态，动能偏空")
+    else:
+        _parts.append(f"MACD指标DIF({last_dif:.2f})与DEA({last_dea:.2f})未形成交叉，动能方向不明确")
+    if math.isfinite(last_roc):
+        _parts.append(f"ROC(12)变动率为{last_roc:.1f}%，{'动能向上' if last_roc > 0 else '动能向下'}")
+    if divergence_notes:
+        _parts.append(f"此外，检测到{'；'.join(divergence_notes)}，需要结合趋势方向谨慎判断")
+    _dir_cn = "看多" if direction == "bullish" else "看空" if direction == "bearish" else "中性"
+    reasoning = (
+        f"{'。'.join(_parts)}。"
+        f"综合以上，{bullish}个指标偏多、{bearish}个指标偏空，震荡系统整体判断为{_dir_cn}，置信度{confidence:.2f}。"
+    )
 
     return {
         "direction": direction,

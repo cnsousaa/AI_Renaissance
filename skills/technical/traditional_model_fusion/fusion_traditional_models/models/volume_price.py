@@ -216,7 +216,38 @@ def analyze(rows: List[OhlcvRow], stock_code: str = "", target: str = "", source
     confidence = clamp(confidence, 0.25, 0.95)
 
     period = f"{dates[0]} 至 {dates[-1]}" if dates else f"{len(rows)} rows"
-    reasoning = f"量价指标综合：{bullish_count} 项偏多、{bearish_count} 项偏空，综合判断为 {direction}。"
+    # 自然语言推理：量价指标逐一解读
+    _parts = []
+    if obv_slope > 0:
+        _parts.append(f"OBV（能量潮）20日趋势向上，斜率{obv_slope:.0f}，资金持续流入，看多")
+    elif obv_slope < 0:
+        _parts.append(f"OBV（能量潮）20日趋势向下，斜率{obv_slope:.0f}，资金流出压力，看空")
+    else:
+        _parts.append(f"OBV（能量潮）20日趋势走平，方向中性")
+    if adl_slope > 0:
+        _parts.append(f"A/D Line（腾落线）同步攀升（斜率{adl_slope:.0f}），买盘力量占优，看多")
+    elif adl_slope < 0:
+        _parts.append(f"A/D Line（腾落线）下滑（斜率{adl_slope:.0f}），卖压偏重，看空")
+    else:
+        _parts.append(f"A/D Line（腾落线）横向运行，多空均衡")
+    if vwap_deviation > 0.02:
+        _parts.append(f"收盘价{last_close:.2f}元远高于VWAP{last_vwap:.2f}元（偏离{vwap_deviation*100:.1f}%），价格强势站上均价，但偏离幅度较大需警惕高位风险")
+    elif vwap_deviation < -0.02:
+        _parts.append(f"收盘价{last_close:.2f}元低于VWAP{last_vwap:.2f}元（偏离{abs(vwap_deviation)*100:.1f}%），价格承压偏弱")
+    else:
+        _parts.append(f"收盘价{last_close:.2f}元紧贴VWAP{last_vwap:.2f}元，价格围绕均价波动，方向不明确")
+    if cmf_score > 0:
+        _parts.append(f"CMF(20)为{cmf_last:.4f}，处于{cmf_label}区间，资金呈净流入态势")
+    elif cmf_score < 0:
+        _parts.append(f"CMF(20)为{cmf_last:.4f}，处于{cmf_label}区间，资金呈净流出态势")
+    else:
+        _parts.append(f"CMF(20)为{cmf_last:.4f}，处于{cmf_label}区间，资金流向不显著")
+    _dir_cn = "看多" if direction == "bullish" else "看空" if direction == "bearish" else "中性"
+    reasoning = (
+        f"{'。'.join(_parts)}。"
+        f"综合来看，4项指标中{bullish_count}项偏多、{bearish_count}项偏空，"
+        f"量价配合整体{_dir_cn}，置信度{confidence:.2f}。"
+    )
 
     evidence_date = dates[-1] if dates else ""
     evidence = [

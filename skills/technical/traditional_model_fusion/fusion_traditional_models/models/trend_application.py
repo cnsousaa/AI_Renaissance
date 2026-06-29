@@ -130,7 +130,42 @@ def analyze(rows: List[OhlcvRow], stock_code: str = "", target: str = "", source
     ]
 
     period = f"{dates[0]} 至 {dates[-1]}" if dates else ""
-    reasoning = "钝化/背离模块用于风险提示与策略建议，方向信号偏保守。"
+    # 自然语言推理：钝化与背离检测结果
+    _parts = []
+    if dull_kdj_high or dull_rsi_high:
+        _d = []
+        if dull_kdj_high:
+            _d.append("KDJ(K值{:.0f},D值{:.0f})均已连续3日站上80高位".format(last_k, last_d))
+        if dull_rsi_high:
+            _d.append("RSI已连续3日高于70")
+        _parts.append("检测到高位钝化信号：" + "、".join(_d) + "，说明当前趋势虽强但超买风险在积累，需用趋势指标二次确认")
+    elif dull_kdj_low or dull_rsi_low:
+        _d = []
+        if dull_kdj_low:
+            _d.append("KDJ(K值{:.0f},D值{:.0f})均已连续3日低于20低位".format(last_k, last_d))
+        if dull_rsi_low:
+            _d.append("RSI已连续3日低于30")
+        _parts.append("检测到低位钝化信号：" + "、".join(_d) + "，弱势可能延续，建议等待右侧确认信号")
+    else:
+        _parts.append("未检测到KDJ或RSI钝化信号，当前指标未在极端区域持续运行")
+    if div_rsi.get("bearish_divergence") or div_macd.get("bearish_divergence"):
+        _d = []
+        if div_rsi.get("bearish_divergence"):
+            _d.append(f"RSI顶背离(价格创新高但RSI走弱，{div_rsi.get('span_days','?')}日跨度)")
+        if div_macd.get("bearish_divergence"):
+            _d.append(f"MACD顶背离(价格新高、柱状图衰减，{div_macd.get('span_days','?')}日跨度)")
+        _parts.append("检测到顶背离：" + "；".join(_d) + "，动能正在衰竭，注意减仓或设置止损")
+    elif div_rsi.get("bullish_divergence") or div_macd.get("bullish_divergence"):
+        _d = []
+        if div_rsi.get("bullish_divergence"):
+            _d.append(f"RSI底背离(价格新低但RSI企稳，{div_rsi.get('span_days','?')}日跨度)")
+        if div_macd.get("bullish_divergence"):
+            _d.append(f"MACD底背离(价格新低、柱状图收窄，{div_macd.get('span_days','?')}日跨度)")
+        _parts.append("检测到底背离：" + "；".join(_d) + "，下跌动能衰退，可能酝酿反弹，但需等待右侧确认")
+    else:
+        _parts.append("未检测到RSI或MACD背离信号，动能方向与价格方向未出现明显背离")
+    _dir_cn = "看空（顶背离风险）" if direction == "bearish" else "看多（底背离机会）" if direction == "bullish" else "中性（无明显背离方向）"
+    reasoning = f"{'。'.join(_parts)}。综合判断方向为{_dir_cn}，置信度{confidence:.2f}。"
 
     return {
         "direction": direction,

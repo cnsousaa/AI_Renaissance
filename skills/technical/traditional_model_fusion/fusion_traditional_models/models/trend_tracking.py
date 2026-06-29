@@ -184,7 +184,27 @@ def analyze(rows: List[OhlcvRow], stock_code: str = "", target: str = "", source
     ]
 
     period = f"{dates[0]} 至 {dates[-1]}" if dates else ""
-    reasoning = f"ADX={last_adx:.1f}，MA60与MACD打分={score}，输出 {direction}。"
+    # 自然语言推理：趋势系统综合判断
+    _parts = []
+    _parts.append(f"趋势强度指标ADX(14)为{last_adx:.1f}，高于20，确认当前处于有效趋势环境而非震荡市")
+    if math.isfinite(last_ma60):
+        if above_ma60:
+            _parts.append(f"收盘价{last_close:.2f}元站上60日均线({last_ma60:.2f}元)，中期上升趋势确立")
+        else:
+            _parts.append(f"收盘价{last_close:.2f}元低于60日均线({last_ma60:.2f}元)，中期趋势偏弱")
+    else:
+        _parts.append(f"60日均线数据暂不可用，以收盘价{last_close:.2f}元为参考基准")
+    if macd_bull:
+        _parts.append(f"MACD动能指标中DIF线({float(dif[-1]):.2f})位于DEA线({float(dea[-1]):.2f})上方，柱状图为正({float(hist[-1]):.2f})，多头动能持续")
+    elif macd_bear:
+        _parts.append(f"MACD动能指标中DIF线({float(dif[-1]):.2f})位于DEA线({float(dea[-1]):.2f})下方，柱状图为负({float(hist[-1]):.2f})，空头动能占优")
+    else:
+        _parts.append(f"MACD动能指标中DIF与DEA粘合，动能方向不明确")
+    _dir_cn = "看多" if direction == "bullish" else "看空" if direction == "bearish" else "中性"
+    reasoning = (
+        f"{'。'.join(_parts)}。"
+        f"趋势系统综合评分{score}分（MA60+MACD），方向{_dir_cn}，置信度{confidence:.2f}。"
+    )
 
     return {
         "direction": direction,
